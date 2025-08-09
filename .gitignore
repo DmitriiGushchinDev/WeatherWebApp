@@ -1,0 +1,12 @@
+*.poetry
+
+
+# Poetry
+poetry.lock
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+env/
+.env
