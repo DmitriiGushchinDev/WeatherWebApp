@@ -25,7 +25,7 @@
 
   <header class="topbar glass">
     <div class="logo">
-      <a href="{% url 'cities_list' %}" class="logo-link">Weather</a>
+      <a href="{% url 'cities:weather_of_detected_city' %}" class="logo-link">Weather</a>
       <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
     </div>
     <div class="nav-actions">

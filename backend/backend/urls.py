@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',views.cities_list, name='cities_list'),
     path('auth/', include('authentication.urls')),
+    path('cities/', include('cities.urls')),
 ]

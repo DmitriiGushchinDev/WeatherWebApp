@@ -4,30 +4,16 @@
 
 {% block content %}
 <section class="auth-wrapper">
-  <div class="auth-card glass" style="max-width:560px;">
-    <h2 class="auth-title">Add a city</h2>
+ <div class="auth-card glass" style="max-width:560px;">
+    <h2 class="auth-title">Detect Location</h2>
     <p class="auth-sub">Quickly detect your current city or type to search.</p>
-
-    <!-- 1) GPS detection -->
-    <div class="module" style="margin-top:0;">
-      <button id="detectCityBtn" class="pill">📍 Detect my location</button>
-      <div id="detectStatus" style="margin-top:10px;color:var(--text-secondary);"></div>
-      <small class="hint">Tip: Geolocation needs HTTPS (or localhost).</small>
-    </div>
-
-    <!-- 2) Manual search fallback -->
-    <div class="module">
-      <label for="city-input" style="display:block;font-weight:600;margin-bottom:6px;">Search city</label>
-      <input id="city-input" type="text" placeholder="Start typing… e.g., London, GB"
-             style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--glass-stroke);
-                    background:rgba(255,255,255,.08);color:#fff;outline:none;">
-      <ul id="suggestions" class="glass" style="margin-top:10px;max-height:240px;overflow:auto;padding:8px;"></ul>
-    </div>
-
-    <!-- 3) Back link -->
-    <div style="text-align:center;margin-top:8px;">
-      <a href="{% url 'cities_list' %}" class="pill" style="display:inline-block;">Back to my cities</a>
-    </div>
-  </div>
+    <p>{{ data.main }}</p>
+    <p>{{ data.country_code }}</p>
+    <p>{{ data.country_name }}</p>
+    <p>{{ data.region_code }}</p>
+    <p>{{ data.region_name }}</p>
+    <p>{{ data.latitude }}</p>
+    <p>{{ data.longitude }}</p>
+ </div>
 </section>
 {% endblock %}

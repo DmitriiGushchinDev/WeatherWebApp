@@ -25,7 +25,7 @@ def login_view(request):
             if "next" in request.POST:
                 return redirect(request.POST.get("next"))
             else:
-                return redirect("cities_list")
+                return redirect("cities:weather_of_detected_city")
 
     else:
         form = AuthenticationForm()
@@ -34,5 +34,5 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('cities_list')
+    return redirect('cities:weather_of_detected_city')
 

@@ -48,7 +48,7 @@ function csrfHeaders(extra = {}) {
       status && (status.textContent = 'Detecting city…');
 
       try {
-        const res = await fetch('/geolocate/', {
+        const res = await fetch('/cities/geolocation/', {
           method: 'POST',
           headers: csrfHeaders(),
           body: JSON.stringify({ lat: latitude, lon: longitude })
@@ -59,7 +59,7 @@ function csrfHeaders(extra = {}) {
         // Build and submit a hidden form to add the city
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '/locations/add/';
+        form.action = '/cities/geolocation/';
         form.innerHTML = `
           <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken') || ''}">
           <input type="hidden" name="name" value="${data.name || ''}">
@@ -120,7 +120,7 @@ function csrfHeaders(extra = {}) {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '/locations/add/';
+    form.action = '/cities/geolocation/';
     form.innerHTML = `
       <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken') || ''}">
       <input type="hidden" name="name" value="${li.dataset.name}">

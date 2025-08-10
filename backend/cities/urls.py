@@ -5,4 +5,5 @@ app_name = 'cities'
 
 urlpatterns = [
     path('geolocation/', views.geolocation, name='geolocation'),
+    path('weather_of_detected_city/', views.weather_of_city, name='weather_of_detected_city'),
 ]
