@@ -15,12 +15,27 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-DB_NAME = os.getenv('DB_NAME')
-DB_USER = os.getenv('DB_USER')
-DB_PASSWORD = os.getenv('DB_PASSWORD')
-DB_HOST = os.getenv('DB_HOST')
-DB_PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DATABASE_NAME')
+DB_USER = os.getenv('DATABASE_USER')
+DB_PASSWORD = os.getenv('DATABASE_PASSWORD')
+DB_HOST = os.getenv('DATABASE_HOST')
+DB_PORT = os.getenv('DATABASE_PORT')
 
+
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+OPENWEATHER_UNITS = os.getenv("OPENWEATHER_UNITS", "metric")   # metric | imperial
+OPENWEATHER_LANG  = os.getenv("OPENWEATHER_LANG", "en")
+REQUESTS_TIMEOUT  = float(os.getenv("REQUESTS_TIMEOUT", "6"))
+
+# Redis cache (recommended)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 0,  # use per-key TTLs
+    }
+}
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -36,7 +51,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+ALLOWED_PARTIES = ["http://localhost:5173"]  
 # Application definition
 
 INSTALLED_APPS = [
@@ -47,8 +62,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',
+    'cities',
     'api',
+    'authentication',
 ]
 
 MIDDLEWARE = [
@@ -59,6 +75,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -131,7 +149,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

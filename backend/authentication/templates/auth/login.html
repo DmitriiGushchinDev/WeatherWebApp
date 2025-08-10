@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<section class="auth-wrapper">
+  <div class="auth-card glass">
+    <h2 class="auth-title">Sign In</h2>
+    <p class="auth-sub">
+      Access your saved cities and alerts.
+      Don’t have an account? <a href="{% url 'auth:register' %}">Create one</a>.
+    </p>
+
+    <form method="post" novalidate class="auth-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="auth-errors">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="auth-errors small">{% for e in field.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" class="btn-primary wide">Sign In</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

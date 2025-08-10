@@ -1,0 +1,57 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>{% block title %}Weather{% endblock %}</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'icons/sun.png' %}">
+  <!-- Apple Weather inspired styles -->
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+
+  <!-- System font stack -->
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  <header class="topbar glass">
+    <div class="logo">
+      <a href="{% url 'cities_list' %}" class="logo-link">Weather</a>
+      <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
+    </div>
+    <div class="nav-actions">
+      <a href="{% url 'cities:geolocation' %}" class="pill">Add a city</a>
+    </div>
+    <nav class="nav-actions">
+      {% if request.user.is_authenticated %}
+        <span class="username glowing-text">{{ request.user.username }}</span>
+        <a href="{% url 'auth:logout' %}" class="pill">Sign out</a>
+      {% else %}
+        <!-- Link to Clerk sign-in -->
+        <a href="{% url 'auth:login' %}" class="pill">Sign in</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer glass">
+    <small>&copy; {{ now|date:"Y" }} Weather Alerts</small>
+  </footer>
+
+  <!-- Optional global JS -->
+  <script src="{% static 'main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
