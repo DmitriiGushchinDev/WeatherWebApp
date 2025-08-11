@@ -29,8 +29,15 @@
       <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
     </div>
     <div class="nav-actions">
-      <a href="{% url 'cities:geolocation' %}" class="pill">Add a city</a>
+      <a href="{% url 'cities_list' %}" class="pill">list</a>
     </div>
+   {% if request.user.is_authenticated %}
+    <form id="city-search" class="nav-search" role="search" autocomplete="off">
+      <input id="citySearchInput" type="text" placeholder="Search city…" aria-label="Search city" />
+      <button type="submit">🔍</button>
+      <div id="citySearchResults" class="search-dropdown" hidden></div>
+    </form>
+    {% endif %}
     <nav class="nav-actions">
       {% if request.user.is_authenticated %}
         <span class="username glowing-text">{{ request.user.username }}</span>
@@ -39,7 +46,10 @@
         <!-- Link to Clerk sign-in -->
         <a href="{% url 'auth:login' %}" class="pill">Sign in</a>
       {% endif %}
-    </nav>
+        <!-- other navbar content -->
+      
+
+      </nav>
   </header>
 
   <main>
@@ -49,7 +59,89 @@
   <footer class="footer glass">
     <small>&copy; {{ now|date:"Y" }} Weather Alerts</small>
   </footer>
-
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('citySearchInput');
+      const drop  = document.getElementById('citySearchResults');
+      const form  = document.getElementById('city-search');
+      if (!input || !drop || !form) return; // defensive
+    
+      let idx = -1, items = [], lastQ = '';
+      const LIMIT = 8;
+    
+      const debounce = (fn, ms=250) => {
+        let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+      };
+    
+      function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+    
+      function goToCity(r){
+        window.location.href = `/cities/detail/?lat=${encodeURIComponent(r.lat)}&lon=${encodeURIComponent(r.lon)}&name=${encodeURIComponent(r.name)}&country=${encodeURIComponent(r.country||'')}`;
+      }
+    
+      function render(results){
+        drop.innerHTML = '';
+        idx = -1;
+        items = (results || []).slice(0, LIMIT);
+        if(!items.length){
+          drop.innerHTML = '<div class="search-empty">No matches</div>';
+          drop.hidden = false;
+          return;
+        }
+        items.forEach((r, i)=>{
+          const el = document.createElement('div');
+          el.className = 'search-item';
+          el.setAttribute('role','option');
+          el.dataset.index = i;
+          el.innerHTML = `
+            <div class="name">${escapeHtml(r.name)}${r.state ? ', '+escapeHtml(r.state) : ''}</div>
+            <div class="meta">${escapeHtml(r.country || '')}${r.timezone ? ' · '+escapeHtml(r.timezone) : ''}</div>
+          `;
+          el.addEventListener('mousedown', (e)=>{ e.preventDefault(); goToCity(r); });
+          drop.appendChild(el);
+        });
+        drop.hidden = false;
+      }
+    
+      const doSearch = debounce(async (q)=>{
+        if(!q || q.length < 2){ drop.hidden = true; drop.innerHTML=''; return; }
+        if(q === lastQ) return;
+        lastQ = q;
+        try{
+          const res = await fetch(`/cities/search?q=${encodeURIComponent(q)}`, { headers:{'Accept':'application/json'} });
+          if(!res.ok) throw new Error('Search failed');
+          render(await res.json());
+        }catch{
+          drop.innerHTML = `<div class="search-empty">Error searching</div>`;
+          drop.hidden = false;
+        }
+      }, 220);
+    
+      input.addEventListener('input', e => doSearch(e.target.value.trim()));
+    
+      // Prevent form submit (so it doesn’t reload page)
+      form.addEventListener('submit', e => e.preventDefault());
+    
+      // Keyboard navigation
+      function updateActive(){
+        [...drop.querySelectorAll('.search-item')].forEach((el,i)=>{
+          el.classList.toggle('active', i===idx);
+          if(i === idx) el.scrollIntoView({block:'nearest'});
+        });
+      }
+      input.addEventListener('keydown', (e)=>{
+        if(drop.hidden) return;
+        const max = items.length - 1;
+        if(e.key === 'ArrowDown'){ e.preventDefault(); idx = Math.min(max, idx + 1); updateActive(); }
+        else if(e.key === 'ArrowUp'){ e.preventDefault(); idx = Math.max(0, idx - 1); updateActive(); }
+        else if(e.key === 'Enter' && idx >= 0){ e.preventDefault(); goToCity(items[idx]); }
+        else if(e.key === 'Escape'){ drop.hidden = true; }
+      });
+    
+      // Close on outside click
+      document.addEventListener('click', (e)=>{ if(!form.contains(e.target)) drop.hidden = true; });
+    });
+    </script>
   <!-- Optional global JS -->
   <script src="{% static 'main.js' %}"></script>
   {% block extra_js %}{% endblock %}

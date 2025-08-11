@@ -1,10 +1,110 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<h1>Cities</h1>
-<ul>
-    {% for city in cities %}
-        <li>{{ city.name }}</li>
-    {% endfor %}
-</ul>
+<section class="section">
+  <h1 class="section-title">Cities – Quick Weather</h1>
+
+  <div class="cities-list">
+    {% if cities %}
+      {% for c in cities %}
+      {% with cur=c.current tz=c.timezone tzoff=c.timezone_offset %}
+      <a href="#">
+        <article class="city-card glass"
+               data-temp-k="{{ cur.temp|default:'' }}"
+               data-dt="{{ cur.dt|default:'' }}"
+               data-tzoff="{{ tzoff|default:'0' }}"
+               data-icon="{{ cur.weather.0.icon|default:'' }}"
+               data-country="{{ c.country|default:'Unknown' }}">
+        <div class="row top">
+          <div class="city-name">
+            {{ c.name|default:tz|default:"Unknown location" }}
+          </div>
+          <div class="cond-emoji" aria-hidden="true">—</div>
+        </div>
+
+        <div class="row middle">
+          <div class="temp">—</div>
+          <div class="meta">
+            <div class="cond-text">—</div>
+            <div class="time">—</div>
+          </div>
+        </div>
+
+        <div class="row bottom">
+          <div class="coords muted">
+            {{ c.lat|default:"" }}, {{ c.lon|default:"" }}
+          </div>
+        </div>
+    </article>
+    </a>
+      {% endwith %}
+      {% endfor %}
+    {% else %}
+      <div class="empty glass">No cities to show.</div>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+/* Stacked cards */
+.cities-list{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.city-card{padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.top{margin-bottom:6px}
+.middle{gap:16px;align-items:flex-end}
+.bottom{margin-top:8px;font-size:12px;opacity:.9}
+.city-name{font-weight:700;font-size:16px}
+.temp{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.meta{display:flex;flex-direction:column;gap:2px}
+.cond-emoji{font-size:22px}
+.muted{opacity:.65}
+.empty{padding:16px;text-align:center}
+</style>
+
+<script>
+(function hydrateCards(){
+  const iconToEmoji = (icon) => {
+    const code = (icon||"").slice(0,2);
+    if (code === "01") return "☀️";
+    if (code === "02") return "🌤️";
+    if (code === "03" || code === "04") return "☁️";
+    if (code === "09") return "🌧️";
+    if (code === "10") return "🌦️";
+    if (code === "11") return "⛈️";
+    if (code === "13") return "❄️";
+    if (code === "50") return "🌫️";
+    return "☀️";
+  };
+
+  const kToC = k => (k == null || isNaN(k)) ? null : (k - 273.15);
+
+  document.querySelectorAll('.city-card').forEach(card => {
+    // Temperature
+    const k = Number(card.dataset.tempK);
+    const tempEl = card.querySelector('.temp');
+    const c = kToC(k);
+    tempEl.textContent = (c == null) ? "—" : `${Math.round(c)}°`;
+
+    // Condition emoji
+    const icon = card.dataset.icon || "";
+    card.querySelector('.cond-emoji').textContent = iconToEmoji(icon);
+
+    // Country name
+    const country = card.dataset.country || "Unknown";
+    card.querySelector('.cond-text').textContent = country;
+
+    // Local time
+    const dt = Number(card.dataset.dt || 0);
+    const tzoff = Number(card.dataset.tzoff || 0);
+    const tEl = card.querySelector('.time');
+    if (dt) {
+      const local = new Date((dt + tzoff) * 1000);
+      tEl.textContent = local.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    } else {
+      tEl.textContent = "—";
+    }
+  });
+})();
+</script>
 {% endblock %}

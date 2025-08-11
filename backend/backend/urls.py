@@ -18,8 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 from cities import views
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('',views.cities_list, name='cities_list'),
+    path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
+    path('cities/search', views.city_search, name='city_search'),
     path('cities/', include('cities.urls')),
 ]
