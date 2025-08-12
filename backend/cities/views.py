@@ -1,5 +1,5 @@
 import time
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseServerError
 from django.shortcuts import render
 import requests
 from .models import City
@@ -193,6 +193,7 @@ def city_detail(request):
     url = f'https://api.tomtom.com/search/2/reverseGeocode/?key={GEOLOCATION_API_BY_LAT_LON}&position={lat},{lon}'
     response = requests.get(url)
     geo = response.json()
+    print(geo)
     url = f'https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}'
     response = requests.get(url)
     data = response.json()

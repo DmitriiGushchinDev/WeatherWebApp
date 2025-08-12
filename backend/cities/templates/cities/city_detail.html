@@ -1,89 +1,82 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Weather now{% endblock %}
+
+{% block title %}Weather{% endblock %}
 
 {% block extra_head %}
 <style>
-  .page { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-  .stack { display: grid; gap: 1rem; }
-  .card { background: var(--glass, rgba(255,255,255,.06)); backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 1rem; }
-  .title { font-size: 1.25rem; font-weight: 600; }
-  .subtitle { color: #888; }
-  .current { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 1rem; }
-  .big { font-size: 3rem; line-height: 1; }
-  .muted { color: #9aa0a6; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; }
-  .row { display: flex; align-items: center; gap: .5rem; }
-  .pill { border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: .25rem .6rem; }
-  .list { display: grid; grid-auto-flow: column; gap: .75rem; overflow-x: auto; padding-bottom: .25rem; }
-  .center { text-align: center; }
-  .icon { width: 48px; height: 48px; }
-  .small { font-size: .9rem; }
+  .wrap{max-width:960px;margin:2rem auto;padding:0 1rem}
+  .stack{display:grid;gap:1rem}
+  .card{background:var(--surface,rgba(255,255,255,.06));border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:1rem}
+  .row{display:flex;align-items:center;gap:.75rem}
+  .space{display:flex;justify-content:space-between;gap:1rem;align-items:center}
+  .muted{color:#6b7280}
+  .h1{font-size:1.25rem;font-weight:600}
+  .big{font-size:3rem;line-height:1}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.5rem}
+  .chip{border:1px solid rgba(0,0,0,.12);border-radius:999px;padding:.35rem .6rem;text-align:center;white-space:nowrap}
+  .scroller{display:grid;grid-auto-flow:column;gap:.75rem;overflow-x:auto;padding-bottom:.25rem}
+  .cell{min-width:96px;text-align:center}
+  .icon{width:48px;height:48px}
+  .small{font-size:.92rem}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page stack">
+<div class="wrap stack">
 
-  <!-- Location header -->
+  <!-- Location -->
   <div class="card">
     {% with a=geo.addresses.0.address %}
-      <div class="title">
+      <div class="h1">
         {{ a.municipality|default:a.localName }},
         {{ a.countrySubdivisionName|default:a.countrySubdivision }},
-        {{ a.country|default:"" }}
+        {{ a.country|default:a.countryCode }}
       </div>
-      <div class="subtitle small">
-        {{ a.freeformAddress|default:"" }}
-      </div>
+      <div class="muted small">{{ a.freeformAddress }}</div>
     {% endwith %}
+    <a class="pill" style="position: absolute; right: 10px; top: 120px;"  onclick="toggle_direction()">+</a>
   </div>
 
-  <!-- Current conditions -->
-  <div class="card current">
-    <div class="stack">
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <div class="small muted" id="localTime"
-               data-dt="{{ data.current.dt }}"
-               data-offset="{{ data.timezone_offset }}">—</div>
-          <div class="row" style="gap:.75rem; align-items: flex-end;">
-            <div class="big">
-              {{ data.current.temp|add:"-273.15"|floatformat:1 }}°C
-            </div>
-            <div class="small muted">{{ data.current.weather.0.description|capfirst }}</div>
-          </div>
-        </div>
-        <img class="icon"
-             src="https://openweathermap.org/img/wn/{{ data.current.weather.0.icon }}@2x.png"
-             alt="{{ data.current.weather.0.main }}">
-      </div>
 
-      <div class="grid-3 small">
-        <div class="pill center">Feels {{ data.current.feels_like|add:"-273.15"|floatformat:1 }}°C</div>
-        <div class="pill center">Humidity {{ data.current.humidity }}%</div>
-        <div class="pill center">Pressure {{ data.current.pressure }} hPa</div>
-        <div class="pill center">UV {{ data.current.uvi }}</div>
-        <div class="pill center">Clouds {{ data.current.clouds }}%</div>
-        <div class="pill center">Visibility {{ data.current.visibility|divisibleby:1000 }} km</div>
+  <!-- Current -->
+  <div class="card">
+    <div class="space">
+      <div class="stack">
+        <div class="muted small" id="nowTime"
+             data-dt="{{ data.current.dt }}" data-offset="{{ data.timezone_offset }}">—</div>
+        <div class="row" style="align-items:flex-end">
+          <div class="big">{{ data.current.temp|floatformat:0|add:"-273"|floatformat:0 }}°C</div>
+          <div class="muted small">{{ data.current.weather.0.description|capfirst }}</div>
+        </div>
       </div>
+      <img class="icon"
+           src="https://openweathermap.org/img/wn/{{ data.current.weather.0.icon }}@2x.png"
+           alt="{{ data.current.weather.0.main }}">
+    </div>
+
+    <div class="chips small" style="margin-top:.75rem">
+      <div class="chip">Feels {{ data.current.feels_like|floatformat:0 }}°C</div>
+      <div class="chip">Humidity {{ data.current.humidity }}%</div>
+      <div class="chip">Pressure {{ data.current.pressure }} hPa</div>
+      <div class="chip">Wind {{ data.current.wind_speed }} m/s @ {{ data.current.wind_deg }}°</div>
+      <div class="chip">UV {{ data.current.uvi }}</div>
+      <div class="chip">Clouds {{ data.current.clouds }}%</div>
+      <div class="chip">Visibility {{ data.current.visibility|divisibleby:1000|floatformat:0 }} km</div>
     </div>
   </div>
 
   <!-- Next hours -->
   <div class="card">
-    <div class="title">Next hours</div>
-    <div class="list small" id="hourlyList"
-         data-offset="{{ data.timezone_offset }}">
-      {% for h in data.hourly|slice:":6" %}
-      <div class="stack center" style="min-width: 92px;">
+    <div class="h1">Next hours</div>
+    <div class="scroller small" id="hourly" data-offset="{{ data.timezone_offset }}">
+      {% for h in data.hourly|slice:":8" %}
+      <div class="cell stack">
         <div class="muted hour" data-dt="{{ h.dt }}">—:—</div>
-        <img class="icon"
-             src="https://openweathermap.org/img/wn/{{ h.weather.0.icon }}.png"
+        <img class="icon" src="https://openweathermap.org/img/wn/{{ h.weather.0.icon }}.png"
              alt="{{ h.weather.0.main }}">
-        <div>{{ h.temp|add:"-273.15"|floatformat:0 }}°C</div>
+        <div><strong>{{ h.temp|add:"-273"|floatformat:0 }}°C</strong></div>
         <div class="muted">{{ h.weather.0.main }}</div>
       </div>
       {% endfor %}
@@ -92,88 +85,58 @@
 
   <!-- Next days -->
   <div class="card">
-    <div class="title">Next days</div>
-    <div class="stack">
-      {% for d in data.daily|slice:":5" %}
-      <div class="row" style="justify-content: space-between;">
-        <div class="row" style="gap:.75rem;">
-          <div class="muted small day" data-dt="{{ d.dt }}" data-offset="{{ data.timezone_offset }}">—</div>
-          <img class="icon"
-               src="https://openweathermap.org/img/wn/{{ d.weather.0.icon }}.png"
-               alt="{{ d.weather.0.main }}">
-          <div class="small muted">{{ d.summary|default:d.weather.0.description|capfirst }}</div>
-        </div>
-        <div class="row small" style="gap:.5rem;">
-          <strong>{{ d.temp.max|add:"-273.15"|floatformat:0 }}°</strong>
-          <span class="muted">/ {{ d.temp.min|add:"-273.15"|floatformat:0 }}°C</span>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  {% if data.alerts %}
-  <div class="card">
-    <div class="title">Alerts</div>
+    <div class="h1">Next days</div>
     <div class="stack small">
-      {% for a in data.alerts %}
-      <div class="pill">
-        <strong>{{ a.event }}</strong> — {{ a.description }}
+      {% for d in data.daily|slice:":6" %}
+      <div class="space">
+        <div class="row">
+          <div class="muted day" data-dt="{{ d.dt }}" data-offset="{{ data.timezone_offset }}">—</div>
+          <img class="icon" src="https://openweathermap.org/img/wn/{{ d.weather.0.icon }}.png"
+               alt="{{ d.weather.0.main }}">
+          <div class="muted">{{ d.summary|default:d.weather.0.description|capfirst }}</div>
+        </div>
+        <div>
+          <strong>{{ d.temp.max|floatformat:0|add:"-273"|floatformat:0 }}°</strong>
+          <span class="muted">/ {{ d.temp.min|floatformat:0|add:"-273"|floatformat:0 }}°C</span>
+        </div>
       </div>
       {% endfor %}
     </div>
   </div>
-  {% endif %}
 
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // Helpers to format local times from UNIX + offset
-  function fmtLocal(unix, offsetSec, opts){
-    const d = new Date((unix + offsetSec) * 1000);
+  function fmtLocal(unix, offset, opts){
+    const d = new Date((Number(unix) + Number(offset)) * 1000);
     return d.toLocaleString(undefined, opts || {hour:'2-digit', minute:'2-digit'});
   }
-  function fmtDay(unix, offsetSec){
-    const d = new Date((unix + offsetSec) * 1000);
-    return d.toLocaleDateString(undefined, { weekday:'short' });
+  function fmtDay(unix, offset){
+    const d = new Date((Number(unix) + Number(offset)) * 1000);
+    return d.toLocaleDateString(undefined, {weekday:'short'});
   }
-
-  // Current local time
+  // header time
   (function(){
-    const el = document.getElementById('localTime');
+    const el = document.getElementById('nowTime');
     if(!el) return;
-    const dt = Number(el.dataset.dt), off = Number(el.dataset.offset);
-    function tick(){
-      // show both date and time
-      el.textContent = new Date((dt + off) * 1000).toLocaleString(undefined, {
-        weekday:'short', hour:'2-digit', minute:'2-digit'
-      });
-    }
-    tick();
-    // update every minute
-    setInterval(tick, 60_000);
+    const dt = el.dataset.dt, off = el.dataset.offset;
+    function tick(){ el.textContent = fmtLocal(dt, off, {weekday:'short', hour:'2-digit', minute:'2-digit'}); }
+    tick(); setInterval(tick, 60000);
   })();
-
-  // Hourly labels
+  // hourly labels
   (function(){
-    const list = document.getElementById('hourlyList');
-    if(!list) return;
-    const off = Number(list.dataset.offset);
-    list.querySelectorAll('.hour').forEach(h=>{
-      const dt = Number(h.dataset.dt);
-      h.textContent = fmtLocal(dt, off, {hour:'2-digit', minute:'2-digit'});
+    const box = document.getElementById('hourly');
+    if(!box) return;
+    const off = box.dataset.offset;
+    box.querySelectorAll('.hour').forEach(h => {
+      h.textContent = fmtLocal(h.dataset.dt, off, {hour:'2-digit', minute:'2-digit'});
     });
   })();
-
-  // Day labels
-  (function(){
-    document.querySelectorAll('.day').forEach(d=>{
-      const dt = Number(d.dataset.dt);
-      const off = Number(d.dataset.offset || 0);
-      d.textContent = fmtDay(dt, off);
-    });
-  })();
+  // day names
+  document.querySelectorAll('.day').forEach(d=>{
+    d.textContent = fmtDay(d.dataset.dt, d.dataset.offset);
+  });
 </script>
 {% endblock %}
