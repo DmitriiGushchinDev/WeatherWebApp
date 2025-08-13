@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import login, logout
 from django.shortcuts import redirect, render
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-
+from cities.models import Profile
 
 
 def register(request):
@@ -11,6 +11,7 @@ def register(request):
         if form.is_valid():
             form.save()
             login(request, form.save())
+            profile = Profile.objects.create(user=form.save())
             return redirect('cities_list')
     else:
         form = UserCreationForm()

@@ -36,7 +36,13 @@
       </div>
       <div class="muted small">{{ a.freeformAddress }}</div>
     {% endwith %}
-    <a class="pill" style="position: absolute; right: 10px; top: 120px;"  onclick="toggle_direction()">+</a>
+    {% if request.user.is_authenticated and not geo.addresses.0.address.localName in cities_list %}
+      <a class="pill" style="position: absolute; right: 10px; top: 120px;"  onclick="addCityToProfile(event)" 
+      data-city-name="{{ geo.addresses.0.address.localName }}"
+      data-country="{{ geo.addresses.0.address.country }}"
+      data-latitude="{{ data.lat }}"
+      data-longitude="{{ data.lon }}">+</a>
+    {% endif %}
   </div>
 
 
@@ -108,6 +114,44 @@
 {% endblock %}
 
 {% block extra_js %}
+
+<script>
+  function addCityToProfile(event){
+    event.preventDefault(); // <-- important for <a> clicks
+
+    const btn = event.currentTarget;
+    const city = btn.dataset.cityName;
+    const country = btn.dataset.country;
+    const lat = parseFloat(btn.dataset.latitude);
+    const lon = parseFloat(btn.dataset.longitude);
+    btn.style.pointerEvents = 'none';
+    btn.textContent = 'Added';
+
+    fetch('{% url "cities:add_city_to_profile" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        name: city,
+        country: country,
+        lat: lat,
+        lon: lon,
+      })
+    })  
+    .then(response => response.json())  
+    .then(data => {
+      btn.style.display = 'none';
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      btn.style.pointerEvents = 'auto';
+      btn.textContent = '+';
+    });
+  }
+</script>
+
 <script>
   function fmtLocal(unix, offset, opts){
     const d = new Date((Number(unix) + Number(offset)) * 1000);

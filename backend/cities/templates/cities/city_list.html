@@ -3,41 +3,45 @@
 
 {% block content %}
 <section class="section">
-  <h1 class="section-title">Cities – Quick Weather</h1>
+  <h1 class="section-title" style = "text-align: center;">Cities – Quick Weather</h1>
 
   <div class="cities-list">
     {% if cities %}
       {% for c in cities %}
-      {% with cur=c.current tz=c.timezone tzoff=c.timezone_offset %}
-      <a href="#">
+      {% with cur=c.current tzoff=c.timezone_offset geo=c.geo %}
+      {{ geo.name }}
+      <a href="{% url 'cities:city_detail' %}?lat={{ c.lat }}&lon={{ c.lon }}">
         <article class="city-card glass"
-               data-temp-k="{{ cur.temp|default:'' }}"
-               data-dt="{{ cur.dt|default:'' }}"
-               data-tzoff="{{ tzoff|default:'0' }}"
-               data-icon="{{ cur.weather.0.icon|default:'' }}"
-               data-country="{{ c.country|default:'Unknown' }}">
-        <div class="row top">
-          <div class="city-name">
-            {{ c.name|default:tz|default:"Unknown location" }}
+                 data-temp-k="{{ cur.temp|default:'' }}"
+                 data-dt="{{ cur.dt|default:'' }}"
+                 data-tzoff="{{ tzoff|default:'0' }}"
+                 data-icon="{{ cur.weather.0.icon|default:'' }}"
+                 data-city="{{ geo.name|default:'' }}"
+                 data-country="{{ geo.country|default:'' }}">
+          <div class="row top">
+            <div class="city-name">
+              {{ geo.name }}/{{ geo.country }}
+            </div>
+            <div class="cond-emoji" aria-hidden="true">—</div>
           </div>
-          <div class="cond-emoji" aria-hidden="true">—</div>
-        </div>
 
-        <div class="row middle">
-          <div class="temp">—</div>
-          <div class="meta">
-            <div class="cond-text">—</div>
-            <div class="time">—</div>
+          <div class="row middle">
+            <div class="temp">—</div>
+            <div class="meta">
+              <div class="cond-text">
+                {% firstof geo.country "Unknown" %}
+              </div>
+              <div class="time">—</div>
+            </div>
           </div>
-        </div>
 
-        <div class="row bottom">
-          <div class="coords muted">
-            {{ c.lat|default:"" }}, {{ c.lon|default:"" }}
+          <div class="row bottom">
+            <div class="coords muted">
+              {{ c.lat|default:"" }}, {{ c.lon|default:"" }}
+            </div>
           </div>
-        </div>
-    </article>
-    </a>
+        </article>
+      </a>
       {% endwith %}
       {% endfor %}
     {% else %}
@@ -90,11 +94,14 @@
     const icon = card.dataset.icon || "";
     card.querySelector('.cond-emoji').textContent = iconToEmoji(icon);
 
-    // Country name
+    // City & Country
+    const city = card.dataset.city || "Unknown location";
     const country = card.dataset.country || "Unknown";
+    const nameEl = card.querySelector('.city-name');
+    if (nameEl && !nameEl.textContent.trim()) nameEl.textContent = city;
     card.querySelector('.cond-text').textContent = country;
 
-    // Local time
+    // Local time (uses real timezone_offset in seconds)
     const dt = Number(card.dataset.dt || 0);
     const tzoff = Number(card.dataset.tzoff || 0);
     const tEl = card.querySelector('.time');

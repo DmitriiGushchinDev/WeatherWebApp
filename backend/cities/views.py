@@ -1,3 +1,4 @@
+import json
 import time
 from django.http import JsonResponse, HttpResponseServerError
 from django.shortcuts import render
@@ -6,6 +7,9 @@ from .models import City
 from dotenv import load_dotenv
 import os
 from django.contrib.auth.decorators import login_required
+from .serializers import CitySerializer, ProfileSerializer
+from .models import Profile
+from rest_framework.decorators import api_view
 load_dotenv()
 
 API_KEY = os.getenv('OPENWEATHER_API_KEY')
@@ -60,6 +64,21 @@ def cities_list(request):
         weather_data_list = cache_obj.get('data', [])
     else:
         weather_data_list = fetch_and_store()
+
+    username = request.user.username
+    profile = Profile.objects.get(user__username=username)
+    profile_serializer = ProfileSerializer(profile)
+    cities = profile_serializer.data['cities']
+    cities_list = []
+    for city in cities:
+        city_obj = City.objects.get(id=city)
+        city_serializer = CitySerializer(city_obj)
+        cities_list.append(city_serializer.data)
+
+    for i in range(len(cities_list)):
+        weather_data_list[i]['geo'] = cities_list[i] 
+        print(weather_data_list[i]['geo'])
+
 
     return render(request, 'cities/city_list.html', {'cities': weather_data_list})
 
@@ -198,4 +217,29 @@ def city_detail(request):
     response = requests.get(url)
     data = response.json()
     print(data) 
-    return render(request, 'cities/city_detail.html', {'geo': geo, 'data': data})  
+    username = request.user.username
+    profile = Profile.objects.get(user__username=username)
+    profile_serializer = ProfileSerializer(profile)
+    cities = profile_serializer.data['cities']
+    cities_list = []
+    for city in cities:
+        city_obj = City.objects.get(id=city)
+        city_serializer = CitySerializer(city_obj)
+        name = city_serializer.data['name']
+        cities_list.append(name)
+    print(cities_list)
+    return render(request, 'cities/city_detail.html', {'geo': geo, 'data': data,  'cities_list': cities_list})  
+
+@api_view(['POST'])
+def add_city_to_profile(request):
+    payload = request.data
+    city = payload.get('name')
+    country = payload.get('country')
+    lat = payload.get('lat')
+    lon = payload.get('lon')
+    city_obj = City.objects.create(name=city, country=country, latitude=lat, longitude=lon)
+    username = request.user.username
+    profile = Profile.objects.get(user__username=username)
+    profile.cities.add(city_obj)
+    profile.save()
+    return JsonResponse({'message': 'City added to profile'})

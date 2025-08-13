@@ -7,4 +7,5 @@ urlpatterns = [
     path('geolocation/', views.geolocation, name='geolocation'),
     path('weather_of_detected_city/', views.weather_of_city, name='weather_of_detected_city'),
     path('detail/', views.city_detail, name='city_detail'),
+    path('add_city_to_profile/', views.add_city_to_profile, name='add_city_to_profile'),
 ]
