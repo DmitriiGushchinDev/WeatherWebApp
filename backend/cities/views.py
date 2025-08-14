@@ -9,15 +9,31 @@ import os
 from django.contrib.auth.decorators import login_required
 from .serializers import CitySerializer, ProfileSerializer
 from .models import Profile
+from .ai_generator import generate_city_description
 from rest_framework.decorators import api_view
+from django.core.cache import cache
+from django.http import HttpResponseBadRequest
+import hashlib
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+
+
+GEO_TTL    = 60 * 60          # 1h   (reverse geocode rarely changes)
+WX_TTL     = 60 * 5           # 5min (weather updates frequently)
+DESC_TTL   = 60 * 5           # 5min (derived from weather)
+CITIES_TTL = 60 * 10          # 10min (user’s cities list)
+
+# ---- HTTP defaults ----
+REQ_TIMEOUT = 8  # seconds
+
 load_dotenv()
 
-API_KEY = os.getenv('OPENWEATHER_API_KEY')
+API_KEY = settings.OPENWEATHER_API_KEY
 GEOLOCATION_API = os.getenv('GEOLOCATION_API')
 WEATHER_TTL_SECONDS = 15*60
 WEATHER_TTL_SECONDS_FOR_LIST = 3*60
 GEO_TTL_SECONDS = 1*60
-GEOLOCATION_API_BY_LAT_LON = os.getenv('GEOLOCATION_API_BY_LAT_LON')
+GEOLOCATION_API_BY_LAT_LON = settings.GEOLOCATION_API_BY_LAT_LON
 # Create your views here.
 @login_required(login_url='auth:login')
 def cities_list(request):
@@ -144,7 +160,7 @@ def weather_of_city(request):
         # If fetch fails but we have a previous cache, use it as a fallback
         if wx_cache and "data" in wx_cache:
             data = wx_cache["data"]
-            return render(request, "cities/weather.html", {"data": data, "geo": geo})
+            return render(request, "cities/city_detail.html", {"data": data, "geo": geo})
         return HttpResponseServerError("Weather service unavailable.")
 
     # 4) Save cache consistently
@@ -203,33 +219,99 @@ def city_search(request):
     except Exception:
         return JsonResponse([], safe=False, status=200)
     
-def city_detail(request):
-    lat = request.GET.get('lat')
-    lon = request.GET.get('lon')
-    print(lat, lon)
-    name = request.GET.get('name')
-    country = request.GET.get('country')
-    url = f'https://api.tomtom.com/search/2/reverseGeocode/?key={GEOLOCATION_API_BY_LAT_LON}&position={lat},{lon}'
-    response = requests.get(url)
-    geo = response.json()
-    print(geo)
-    url = f'https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}'
-    response = requests.get(url)
-    data = response.json()
-    print(data) 
-    username = request.user.username
-    profile = Profile.objects.get(user__username=username)
-    profile_serializer = ProfileSerializer(profile)
-    cities = profile_serializer.data['cities']
-    cities_list = []
-    for city in cities:
-        city_obj = City.objects.get(id=city)
-        city_serializer = CitySerializer(city_obj)
-        name = city_serializer.data['name']
-        cities_list.append(name)
-    print(cities_list)
-    return render(request, 'cities/city_detail.html', {'geo': geo, 'data': data,  'cities_list': cities_list})  
+def _coord_key(lat: str, lon: str) -> str:
+    return f"{lat.strip()}_{lon.strip()}"
 
+def _hash_dict(d: dict) -> str:
+    return hashlib.md5(json.dumps(d, sort_keys=True).encode("utf-8")).hexdigest()
+
+def _fetch_json(url: str) -> dict:
+    r = requests.get(url, timeout=REQ_TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+def city_detail(request):
+    lat = request.GET.get("lat")
+    lon = request.GET.get("lon")
+    if not lat or not lon:
+        return HttpResponseBadRequest("lat and lon are required")
+
+    # OPTIONAL: normalize to fixed precision so keys remain stable
+    try:
+        lat = f"{float(lat):.4f}"
+        lon = f"{float(lon):.4f}"
+    except ValueError:
+        return HttpResponseBadRequest("lat/lon must be numbers")
+
+    coord_key = _coord_key(lat, lon)
+
+    # ---------- GEO (reverse geocode) ----------
+    geo_cache_key = f"geo:{coord_key}"
+    geo = cache.get(geo_cache_key)
+    if geo is None:
+        geo_url = (
+            f"https://api.tomtom.com/search/2/reverseGeocode/"
+            f"?key={GEOLOCATION_API_BY_LAT_LON}&position={lat},{lon}"
+        )
+        try:
+            geo = _fetch_json(geo_url)
+            cache.set(geo_cache_key, geo, GEO_TTL)
+        except requests.RequestException:
+            geo = {}
+
+    # ---------- WEATHER (OpenWeather One Call) ----------
+    wx_cache_key = f"wx:{coord_key}"
+    data = cache.get(wx_cache_key)
+    if data is None:
+        wx_url = (
+            f"https://api.openweathermap.org/data/3.0/onecall"
+            f"?lat={lat}&lon={lon}&appid={API_KEY}"
+        )
+        try:
+            data = _fetch_json(wx_url)
+            cache.set(wx_cache_key, data, WX_TTL)
+        except requests.RequestException:
+            data = {}
+
+    # ---------- DESCRIPTION (derived; depends on geo+weather) ----------
+    # Tie cache to both inputs so changes invalidate automatically
+    desc_sig = f"{_hash_dict(data)}:{_hash_dict(geo)}"
+    desc_cache_key = f"desc:{desc_sig}"
+    description_data = cache.get(desc_cache_key)
+    if description_data is None:
+        try:
+            description_data = generate_city_description(data, geo)
+        except Exception:
+            description_data = {}
+        cache.set(desc_cache_key, description_data, DESC_TTL)
+
+    # ---------- USER CITIES (single query, cached per user) ----------
+    username = request.user.username
+    cities_cache_key = f"user_cities:{username}"
+    cities_list = cache.get(cities_cache_key)
+
+    if cities_list is None:
+        profile = get_object_or_404(Profile, user__username=username)
+        # serialize once to get ids, then bulk fetch names
+        profile_serializer = ProfileSerializer(profile)
+        city_ids = profile_serializer.data.get("cities", [])
+        # bulk query to avoid N+1
+        qs = City.objects.filter(id__in=city_ids).only("id", "name")
+        # keep original order if needed
+        name_by_id = {c.id: c.name for c in qs}
+        cities_list = [name_by_id.get(cid) for cid in city_ids if cid in name_by_id]
+        cache.set(cities_cache_key, cities_list, CITIES_TTL)
+
+    context = {
+        "geo": geo,
+        "data": data,
+        "cities_list": cities_list or [],
+        "description_data": description_data or {},
+    }
+    print (geo)
+    print(data)
+    print(description_data)
+    return render(request, "cities/city_detail.html", context)
 @api_view(['POST'])
 def add_city_to_profile(request):
     payload = request.data
@@ -243,3 +325,4 @@ def add_city_to_profile(request):
     profile.cities.add(city_obj)
     profile.save()
     return JsonResponse({'message': 'City added to profile'})
+

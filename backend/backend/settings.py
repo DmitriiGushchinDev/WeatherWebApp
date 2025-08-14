@@ -20,7 +20,7 @@ DB_USER = os.getenv('DATABASE_USER')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD')
 DB_HOST = os.getenv('DATABASE_HOST')
 DB_PORT = os.getenv('DATABASE_PORT')
-
+GEOLOCATION_API_BY_LAT_LON = os.getenv('GEOLOCATION_API_BY_LAT_LON')
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 OPENWEATHER_UNITS = os.getenv("OPENWEATHER_UNITS", "metric")   # metric | imperial
@@ -164,7 +164,10 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379/1",  # Replace with your Redis server URL
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
             # Optional: Add other options like 'CONNECTION_POOL_KWARGS' for pooling
-        }
+        },
+        "KEY_PREFIX": "weather_cache",
+        "TIMEOUT": 60 * 5,  # 30 days
     }
 }

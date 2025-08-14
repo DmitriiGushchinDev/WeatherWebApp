@@ -397,7 +397,7 @@
   gap: 16px;
   margin-top: 16px;
 }
-.wx-daily { min-height: 360px; }
+.wx-daily { min-height: 260px; }
 .wx-side { display: grid; gap: 16px; grid-auto-rows: minmax(0, auto); }
 
 /* Better spacing for daily rows on wide screens */
@@ -620,6 +620,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: visible; /* allow dropdown to extend outside */
+
 }
 
 .city-card {
@@ -677,7 +679,7 @@
   background:transparent; border:none; outline:none; color:#fff; min-width:220px;
 }
 .nav-search button{
-  background:transparent; border:none; cursor:pointer; color:#fff; font-size:16px;
+  background:transparent; border:none; cursor:pointer; color:#fff; font-size:16px; overflow: visible;
 }
 
 .search-dropdown{
@@ -685,6 +687,7 @@
   background:rgba(0,0,0,.9); backdrop-filter: blur(10px);
   border:1px solid rgba(255,255,255,.2); border-radius:12px; overflow:hidden;
   max-height:380px; overflow-y:auto;
+  overflow: visible;
 }
 .search-item{
   padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:12px;
@@ -726,6 +729,7 @@
   overflow: hidden;
   max-height: 340px;
   backdrop-filter: blur(8px);
+  overflow: visible;
 }
 
 .search-item {

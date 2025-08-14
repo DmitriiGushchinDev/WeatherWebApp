@@ -18,7 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from cities import views
 urlpatterns = [
-    path('',views.cities_list, name='cities_list'),
+    path('',views.weather_of_city, name='weather_of_detected_city'),
+    path('cities_list',views.cities_list, name='cities_list'),
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
     path('cities/search', views.city_search, name='city_search'),

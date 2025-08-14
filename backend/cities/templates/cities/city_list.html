@@ -9,7 +9,6 @@
     {% if cities %}
       {% for c in cities %}
       {% with cur=c.current tzoff=c.timezone_offset geo=c.geo %}
-      {{ geo.name }}
       <a href="{% url 'cities:city_detail' %}?lat={{ c.lat }}&lon={{ c.lon }}">
         <article class="city-card glass"
                  data-temp-k="{{ cur.temp|default:'' }}"
@@ -37,7 +36,7 @@
 
           <div class="row bottom">
             <div class="coords muted">
-              {{ c.lat|default:"" }}, {{ c.lon|default:"" }}
+              {{ data.today.temp }}/{{ data.today.temp.max }}
             </div>
           </div>
         </article>
