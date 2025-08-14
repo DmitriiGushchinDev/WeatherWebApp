@@ -22,6 +22,7 @@ DB_HOST = os.getenv('DATABASE_HOST')
 DB_PORT = os.getenv('DATABASE_PORT')
 GEOLOCATION_API_BY_LAT_LON = os.getenv('GEOLOCATION_API_BY_LAT_LON')
 
+
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 OPENWEATHER_UNITS = os.getenv("OPENWEATHER_UNITS", "metric")   # metric | imperial
 OPENWEATHER_LANG  = os.getenv("OPENWEATHER_LANG", "en")

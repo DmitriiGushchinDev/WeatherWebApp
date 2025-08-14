@@ -7,8 +7,10 @@ class City(models.Model):
     country = models.CharField(max_length=255)
     latitude = models.FloatField()
     longitude = models.FloatField()
-    region = models.CharField(max_length=255)
-
+    region = models.CharField(max_length=255, blank=True, null=True)
+    description = models.JSONField(blank=True, null=True)
+    what_to_wear = models.JSONField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.name

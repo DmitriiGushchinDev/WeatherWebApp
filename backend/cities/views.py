@@ -1,5 +1,7 @@
+from datetime import timedelta
 import json
 import time
+from datetime import datetime, timezone
 from django.http import JsonResponse, HttpResponseServerError
 from django.shortcuts import render
 import requests
@@ -276,8 +278,34 @@ def city_detail(request):
     # ---------- DESCRIPTION (derived; depends on geo+weather) ----------
     # Tie cache to both inputs so changes invalidate automatically
     desc_sig = f"{_hash_dict(data)}:{_hash_dict(geo)}"
-    desc_cache_key = f"desc:{desc_sig}"
+
+    # Safely extract address fields from geo
+    municipality = geo['addresses'][0]['address']['municipality']
+    country = geo['addresses'][0]['address']['country']
+    print(municipality)
+    print(country)  
+
+
+    city_description, created = City.objects.get_or_create(
+        latitude=lat,
+        longitude=lon,
+        name=municipality,
+        country=country
+    )
+    if created:
+        city_description.save()
+
+    desc_cache_key = f"desc:{desc_sig}:{city_description.id}"
+    print(desc_cache_key)
     description_data = cache.get(desc_cache_key)
+
+    if city_description.description is None or city_description.updated_at is None or datetime.now(timezone.utc) - city_description.updated_at > timedelta(days=1):
+        description_data = generate_city_description(data, geo)
+        city_description.description = description_data.get('description')
+        city_description.what_to_wear = description_data.get('what_to_wear')
+        city_description.updated_at = datetime.now(timezone.utc)
+        city_description.save()
+
     if description_data is None:
         try:
             description_data = generate_city_description(data, geo)
@@ -301,7 +329,7 @@ def city_detail(request):
         name_by_id = {c.id: c.name for c in qs}
         cities_list = [name_by_id.get(cid) for cid in city_ids if cid in name_by_id]
         cache.set(cities_cache_key, cities_list, CITIES_TTL)
-
+    print(description_data)
     context = {
         "geo": geo,
         "data": data,
