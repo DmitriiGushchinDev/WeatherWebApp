@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 
-
 {% block title %}Local Weather{% endblock %}
 
 {% block content %}
-
 <style>
 /* ---- layout tweaks just for this page ---- */
 .wx-grid {
@@ -27,7 +25,6 @@
 {% if request.user.is_authenticated and not data.name in cities_list%}
   <a href="#" class="pill" style="position: absolute; right: 10px; top: 120px;" onclick="add_city_to_list()"> + </a>
   <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> add the city to your list </span>
-
 {% else %}
   <a href="{% url 'auth:login' %}" class="pill" style="position: absolute; right: 10px; top: 120px;"> + </a>
   <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> login to add the city to your list </span>
@@ -47,10 +44,10 @@
 </section>
 
 <section class="wx-grid">
-    <div class="wx-daily module glass">
-        <div class="module-title">7‑Day Forecast</div>
-        <div id="dailyCompact" class="days-compact"></div>
-      </div>
+  <div class="wx-daily module glass">
+    <div class="module-title">7-Day Forecast</div>
+    <div id="dailyCompact" class="days-compact"></div>
+  </div>
 
   <div class="wx-side">
     <div class="module glass">
@@ -80,44 +77,46 @@
   <div class="kv"><span>ISP / ASN</span><b id="isp">—</b></div>
   <div class="kv"><span>VPN?</span><b id="vpn">—</b></div>
 </section>
-
 {% endblock %}
 
 {% block extra_js %}
 {{ data|json_script:"wx-json" }}
 {{ geo|json_script:"geo-json" }}
+
 <script>
   function add_city_to_list() {
     console.log('add_city_to_list');
   }
 </script>
 
-
-
-
-
 <script>
 (function () {
   const wx  = JSON.parse(document.getElementById('wx-json').textContent || '{}');   // OpenWeather One Call
   const geo = JSON.parse(document.getElementById('geo-json').textContent || '{}');  // IP geolocation
 
-  // helpers
-  const tzOffset = Number(wx.timezone_offset || 0);
-  const toLocal = ts => new Date((ts + tzOffset) * 1000);
-  const timeHM = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  const dayShort = d => d.toLocaleDateString([], {weekday:'short'});
+  /* ========== TIMEZONE: use the zone string; NO manual offset math ========== */
+  const tzName = geo?.timezone?.name || wx?.timezone || 'UTC';
+
+  /* ---------------- helpers ---------------- */
   const looksK = t => typeof t === 'number' && t > 200;
   const KtoC = k => k - 273.15;
   const tFmt = t => t == null ? '—' : `${Math.round(looksK(t) ? KtoC(t) : t)}°`;
   const visFmt = m => typeof m === 'number' ? (m>=1000 ? (m/1000).toFixed(1)+' km' : m+' m') : '—';
   const degToCompass = deg => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((deg||0)/22.5)%16];
 
-  // header/place
+  // time formatters that respect the target location's timezone
+  const timeHM = (ts) => new Date(Number(ts) * 1000)
+    .toLocaleTimeString([], { hour:'numeric', minute:'2-digit', timeZone: tzName });
+
+  const dayShort = (ts) => new Date(Number(ts) * 1000)
+    .toLocaleDateString([], { weekday:'short', timeZone: tzName });
+
+  /* --------------- header/place --------------- */
   const place = `${geo.city || 'Your location'}, ${geo.region || ''}${geo.country ? ', '+geo.country : ''}`
     .replace(/, ,/g, ',').replace(/, $/,'');
   document.getElementById('place').textContent = place || (wx.timezone || 'Your location');
 
-  // hero
+  /* --------------- hero --------------- */
   const cur = wx.current || {};
   document.getElementById('curTemp').textContent = tFmt(cur.temp);
   document.getElementById('curCond').textContent = (cur.weather?.[0]?.description || '—')
@@ -127,146 +126,114 @@
     document.getElementById('hiLo').textContent = `H ${tFmt(d0.temp?.max)} · L ${tFmt(d0.temp?.min)}`;
   }
 
-  // local clock & tz
-  const tzName = geo.timezone?.name || wx.timezone || '—';
+  /* --------------- local clock & tz --------------- */
   document.getElementById('tzName').textContent = tzName;
   function tick(){
-    const base = new Date();
-    try {
-      document.getElementById('localClock').textContent =
-        base.toLocaleString([], { timeZone: tzName, hour:'numeric', minute:'2-digit', second:'2-digit' });
-    } catch {
-      const d = new Date(base.getTime() + tzOffset*1000);
-      document.getElementById('localClock').textContent = d.toLocaleTimeString();
-    }
+    const now = new Date();
+    document.getElementById('localClock').textContent =
+      now.toLocaleString([], { timeZone: tzName, hour:'numeric', minute:'2-digit', second:'2-digit' });
   }
   tick(); setInterval(tick, 1000);
 
-  // location card
+  /* --------------- location card --------------- */
   document.getElementById('locCity').textContent   = geo.city || '—';
   document.getElementById('locRegion').textContent = geo.region || '—';
   document.getElementById('locCountry').textContent= geo.country || '—';
   document.getElementById('locFlag').textContent   = geo.flag?.emoji || '';
   document.getElementById('coords').textContent    = `${wx.lat ?? '—'}, ${wx.lon ?? '—'}`;
 
-  // current details
-  document.getElementById('hum').textContent = cur.humidity != null ? cur.humidity + '%' : '—';
-  document.getElementById('uvi').textContent = cur.uvi ?? '—';
+  /* --------------- current details --------------- */
+  document.getElementById('hum').textContent    = cur.humidity != null ? cur.humidity + '%' : '—';
+  document.getElementById('uvi').textContent    = cur.uvi ?? '—';
   document.getElementById('windSp').textContent = (cur.wind_speed ?? '—') + (looksK(cur.temp) ? ' m/s' : '');
-  document.getElementById('windDir').textContent = (cur.wind_deg != null ? `${cur.wind_deg}° ${degToCompass(cur.wind_deg)}` : '—');
-  document.getElementById('vis').textContent = visFmt(cur.visibility);
-  if (cur.sunrise) document.getElementById('sunrise').textContent = timeHM(toLocal(cur.sunrise));
-  if (cur.sunset)  document.getElementById('sunset').textContent  = timeHM(toLocal(cur.sunset));
+  document.getElementById('windDir').textContent= (cur.wind_deg != null ? `${cur.wind_deg}° ${degToCompass(cur.wind_deg)}` : '—');
+  document.getElementById('vis').textContent    = visFmt(cur.visibility);
+  if (cur.sunrise) document.getElementById('sunrise').textContent = timeHM(cur.sunrise);
+  if (cur.sunset)  document.getElementById('sunset').textContent  = timeHM(cur.sunset);
 
-  // network card
+  /* --------------- network card --------------- */
   document.getElementById('ip').textContent  = geo.ip_address || '—';
-  const asn = geo.connection?.autonomous_system_number;
-  const org = geo.connection?.autonomous_system_organization;
+  const asn = geo?.connection?.autonomous_system_number;
+  const org = geo?.connection?.autonomous_system_organization;
   document.getElementById('isp').textContent = [org, asn ? `AS${asn}` : null].filter(Boolean).join(' · ') || '—';
-  document.getElementById('vpn').textContent = (geo.security?.is_vpn === true) ? 'Yes' : 'No';
+  document.getElementById('vpn').textContent = (geo?.security?.is_vpn === true) ? 'Yes' : 'No';
 
-  // hourly 24h
-// ------- Hourly 24h (clear, labeled tiles) -------
-const hourly = (wx.hourly || []).slice(0, 24);
-const hourlyHTML = hourly.map(h => {
-  // precip chance + icon logic (for the big top icon)
-  const popPct = Math.round((h.pop || 0) * 100);
-  const topIcon = popPct === 0 ? '☀️' : (popPct < 70 ? '💧' : '💦');
+  /* --------------- hourly 24h (FIXED TIME) --------------- */
+  const hourly = (wx.hourly || []).slice(0, 24);
+  const hourlyHTML = hourly.map(h => {
+    const popPct  = Math.round((h.pop || 0) * 100);
+    const topIcon = popPct === 0 ? '☀️' : (popPct < 70 ? '💧' : '💦');
 
-  // precip amount (prefer rain then snow)
-  const rain1h = (h.rain && (h.rain['1h'] ?? h.rain['1H'])) || 0;
-  const snow1h = (h.snow && (h.snow['1h'] ?? h.snow['1H'])) || 0;
-  const hasSnow = snow1h > rain1h;
-  const amt = (rain1h || snow1h) ? (rain1h || snow1h).toFixed(1) : '—';
-  const amtLabel = hasSnow ? 'Snow' : 'Rain';
-  const amtIcon  = hasSnow ? '❄️' : '💧';
+    const rain1h = (h.rain && (h.rain['1h'] ?? h.rain['1H'])) || 0;
+    const snow1h = (h.snow && (h.snow['1h'] ?? h.snow['1H'])) || 0;
+    const hasSnow = snow1h > rain1h;
+    const amt = (rain1h || snow1h) ? (rain1h || snow1h).toFixed(1) : '—';
+    const amtLabel = hasSnow ? 'Snow' : 'Rain';
+    const amtIcon  = hasSnow ? '❄️' : '💧';
 
-  // wind: OpenWeather gives FROM; show TO for clarity on arrow + label
-  const fromDeg   = h.wind_deg ?? 0;
-  const towardDeg = (fromDeg + 180) % 360;
-  const towardTxt = degToCompass(towardDeg);
-  const sp        = h.wind_speed ?? '—';
-  const needleRot = `rotate(${towardDeg}deg)`;
+    const fromDeg   = h.wind_deg ?? 0;
+    const towardDeg = (fromDeg + 180) % 360;
+    const towardTxt = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((towardDeg||0)/22.5)%16];
+    const sp        = h.wind_speed ?? '—';
 
-  // chance chip color
-  const popClass = popPct === 0 ? 'zero' : (popPct < 70 ? 'mid' : 'high');
+    const popClass = popPct === 0 ? 'zero' : (popPct < 70 ? 'mid' : 'high');
 
-  return `
-    <div class="h-card" title="${(h.weather?.[0]?.description || '').replace(/"/g,'&quot;')}">
-      <div class="t">${timeHM(toLocal(h.dt))}</div>
-      <div class="ico">${topIcon}</div>
-      <div class="temp">${tFmt(h.temp)}</div>
-      <div class="feels">feels ${tFmt(h.feels_like)}</div>
+    return `
+      <div class="h-card" title="${(h.weather?.[0]?.description || '').replace(/"/g,'&quot;')}">
+        <div class="t">${timeHM(h.dt)}</div>
+        <div class="ico">${topIcon}</div>
+        <div class="temp">${tFmt(h.temp)}</div>
+        <div class="feels">feels ${tFmt(h.feels_like)}</div>
 
-      <div class="windbox" aria-label="Wind blowing toward ${towardTxt}">
-        <span class="windcomp">
-          <span class="ring"></span>
-          <span class="needle" style="transform:${needleRot}"></span>
-          <span class="head"   style="transform: translate(-50%, -100%) ${needleRot}"></span>
-          <span class="hub"></span>
-        </span>
-        <span class="windto">${sp} m/s → ${towardTxt}</span>
-      </div>
-
-      <div class="metrics">
-        <div class="chip pop ${popClass}" title="Probability of precipitation">
-          <span class="label">Chance</span><span class="val">${popPct}%</span>
+        <div class="windbox" aria-label="Wind blowing toward ${towardTxt}">
+          <span class="windto">${sp} m/s → ${towardTxt}</span>
         </div>
-        <div class="chip" title="${amtLabel} amount (last/next 1h)">
-          <span>${amtIcon}</span><span class="label">${amtLabel}</span><span class="val">${amt} ${amt === '—' ? '' : 'mm'}</span>
-        </div>
-        <div class="chip" title="Relative humidity">
-          <span>💨</span><span class="label">RH</span><span class="val">${h.humidity ?? '—'}%</span>
+
+        <div class="metrics">
+          <div class="chip pop ${popClass}" title="Probability of precipitation">
+            <span class="label">Chance</span><span class="val">${popPct}%</span>
+          </div>
+          <div class="chip" title="${amtLabel} amount (last/next 1h)">
+            <span>${amtIcon}</span><span class="label">${amtLabel}</span><span class="val">${amt} ${amt === '—' ? '' : 'mm'}</span>
+          </div>
+          <div class="chip" title="Relative humidity">
+            <span>💨</span><span class="label">RH</span><span class="val">${h.humidity ?? '—'}%</span>
+          </div>
         </div>
       </div>
-    </div>
-  `;
-}).join('');
+    `;
+  }).join('');
+  document.getElementById('hourlyStrip').innerHTML = hourlyHTML;
 
-document.getElementById('hourlyStrip').innerHTML = hourlyHTML;
-// daily 7d
-const daily = (wx.daily || []).slice(0, 7);
+  /* --------------- daily 7d (also use tz for names) --------------- */
+  const daily = (wx.daily || []).slice(0, 7);
+  const allTemps = daily.flatMap(d => [d?.temp?.min, d?.temp?.max]).filter(v => typeof v === 'number');
+  const toC = v => looksK(v) ? (v - 273.15) : v;
+  const loAll = allTemps.length ? Math.min(...allTemps.map(toC)) : 0;
+  const hiAll = allTemps.length ? Math.max(...allTemps.map(toC)) : 1;
+  const rng = Math.max(4, hiAll - loAll);
+  const normPct = vC => Math.min(100, Math.max(0, ((vC - loAll) / rng) * 100));
+  const tTxt = v => v == null ? '—' : Math.round(toC(v)) + '°';
+  const iconFrom = d => { const p = Math.round((d.pop || 0) * 100); return p===0?'☀️':(p<70?'💧':'💦'); };
 
-// compute a scale so the min/max temps map to 0–100 for nice bars
-const allTemps = daily.flatMap(d => [d?.temp?.min, d?.temp?.max]).filter(v => typeof v === 'number');
-const kToC = k => k - 273.15;
-const toC = v => looksK(v) ? kToC(v) : v;
+  document.getElementById('dailyCompact').innerHTML = daily.map(d => {
+    const dayName = dayShort(d.dt);
+    const minC = toC(d?.temp?.min), maxC = toC(d?.temp?.max);
+    const loPct = normPct(minC ?? loAll);
+    const hiPct = normPct(maxC ?? hiAll);
+    const popPct = Math.round((d.pop || 0) * 100);
+    const badgeCls = popPct === 0 ? 'zero' : (popPct >= 70 ? 'high' : '');
 
-const loAll = Math.min(...allTemps.map(toC));
-const hiAll = Math.max(...allTemps.map(toC));
-const rng = Math.max(4, hiAll - loAll); // avoid zero-width bars
-
-function normPct(vC) {
-  return Math.min(100, Math.max(0, ((vC - loAll) / rng) * 100));
-}
-function tTxt(v) { return v == null ? '—' : Math.round(toC(v)) + '°'; }
-
-function iconFrom(d) {
-  const popPct = Math.round((d.pop || 0) * 100);
-  if (popPct === 0) return '☀️';
-  if (popPct < 70)  return '💧';
-  return '💦';
-}
-
-document.getElementById('dailyCompact').innerHTML = daily.map(d => {
-  const dayName = new Date((d.dt + (wx.timezone_offset||0)) * 1000)
-                    .toLocaleDateString([], { weekday:'short' });
-  const minC = toC(d?.temp?.min), maxC = toC(d?.temp?.max);
-  const loPct = normPct(minC ?? loAll);
-  const hiPct = normPct(maxC ?? hiAll);
-  const popPct = Math.round((d.pop || 0) * 100);
-  const badgeCls = popPct === 0 ? 'zero' : (popPct >= 70 ? 'high' : '');
-
-  return `
-    <div class="day-mini" title="${d.summary || d.weather?.[0]?.description || ''}">
-      <div class="w">${dayName}</div>
-      <div class="ico">${iconFrom(d)}</div>
-      <div class="bar" style="--lo:${loPct}; --hi:${hiPct};"></div>
-      <div class="temps"><span>${tTxt(d.temp?.min)}</span><span>${tTxt(d.temp?.max)}</span></div>
-      <div class="badge ${badgeCls}">${popPct}%</div>
-    </div>
-  `;
-}).join('');
+    return `
+      <div class="day-mini" title="${(d.summary || d.weather?.[0]?.description || '').replace(/"/g,'&quot;')}">
+        <div class="w">${dayName}</div>
+        <div class="ico">${iconFrom(d)}</div>
+        <div class="bar" style="--lo:${loPct}; --hi:${hiPct};"></div>
+        <div class="temps"><span>${tTxt(d.temp?.min)}</span><span>${tTxt(d.temp?.max)}</span></div>
+        <div class="badge ${badgeCls}">${popPct}%</div>
+      </div>
+    `;
+  }).join('');
 })();
 </script>
 {% endblock %}

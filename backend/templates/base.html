@@ -31,13 +31,13 @@
     <div class="nav-actions">
       <a href="{% url 'cities_list' %}" class="pill">list</a>
     </div>
-   {% if request.user.is_authenticated %}
+
     <form id="city-search" class="nav-search" role="search" autocomplete="off">
       <input id="citySearchInput" type="text" placeholder="Search city…" aria-label="Search city" />
       <button type="submit">🔍</button>
       <div id="citySearchResults" class="search-dropdown" hidden></div>
     </form>
-    {% endif %}
+
     <nav class="nav-actions">
       {% if request.user.is_authenticated %}
         <span class="username glowing-text">{{ request.user.username }}</span>
@@ -76,9 +76,12 @@
       function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
     
       function goToCity(r){
-        window.location.href = `/cities/detail/?lat=${encodeURIComponent(r.lat)}&lon=${encodeURIComponent(r.lon)}&name=${encodeURIComponent(r.name)}&country=${encodeURIComponent(r.country||'')}`;
-      }
-    
+        const base = window.USER_IS_AUTHENTICATED 
+          ? "/cities/detail/" 
+          : "/cities/city_detail_for_unauthenticated_user/";
+      
+        window.location.href = `${base}?lat=${encodeURIComponent(r.lat)}&lon=${encodeURIComponent(r.lon)}&name=${encodeURIComponent(r.name)}&country=${encodeURIComponent(r.country||'')}`;
+      }    
       function render(results){
         drop.innerHTML = '';
         idx = -1;
@@ -141,6 +144,9 @@
       // Close on outside click
       document.addEventListener('click', (e)=>{ if(!form.contains(e.target)) drop.hidden = true; });
     });
+    </script>
+    <script>
+      window.USER_IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
     </script>
   <!-- Optional global JS -->
   <script src="{% static 'main.js' %}"></script>

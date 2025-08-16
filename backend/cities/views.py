@@ -175,24 +175,8 @@ def weather_of_city(request):
 
     return render(request, "cities/weather.html", {"data": data, "geo": geo})
 
-def weather_of_detected_city(request):
-    url = f'https://ipgeolocation.abstractapi.com/v1/?api_key={GEOLOCATION_API}'
-    response = requests.get(url)
-    data = response.json()
-    url = f'https://api.openweathermap.org/data/3.0/onecall?lat={data['latitude']}&lon={data['longitude']}&appid={API_KEY}'
-    response = requests.get(url)
-    data = response.json()
-    print(data)
-    print(data['current']['temp'])
-    return render(request, 'cities/weather_of_detected.html', {'data': data})
 
-@login_required(login_url='auth:login')
-def geolocation(request):
-    url = f'https://ipgeolocation.abstractapi.com/v1/?api_key={GEOLOCATION_API}'
-    response = requests.get(url)
-    data = response.json()
-    print(data)
-    return render(request, 'cities/geolocation.html', {'data': data})
+
 
 def city_search(request):
     q = request.GET.get('q', '').strip()
@@ -231,6 +215,39 @@ def _fetch_json(url: str) -> dict:
     r = requests.get(url, timeout=REQ_TIMEOUT)
     r.raise_for_status()
     return r.json()
+
+def city_detail_for_unauthenticated_user(request):
+    lat = request.GET.get("lat")
+    lon = request.GET.get("lon")
+    if not lat or not lon:
+        return HttpResponseBadRequest("lat and lon are required")
+    geo_url = f"https://api.tomtom.com/search/2/reverseGeocode/?key={GEOLOCATION_API_BY_LAT_LON}&position={lat},{lon}"
+    geo_response = requests.get(geo_url)
+    geo = geo_response.json()
+    data_url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}"
+    data_response = requests.get(data_url)
+    data = data_response.json()
+    description_data = generate_city_description(data, geo)
+    city_description, created = City.objects.get_or_create(
+        latitude=lat,
+        longitude=lon,
+        name=geo['addresses'][0]['address']['localName'],
+        country=geo['addresses'][0]['address']['country']
+    )
+    city_description.description = description_data['description']
+    city_description.what_to_wear = description_data['what_to_wear']
+    city_description.save()
+    context = {
+        "geo": geo,
+        "data": data,
+        "description_data": description_data,
+    }
+    return render(request, "cities/city_detail.html", context)
+
+
+
+
+    return render(request, "cities/weather.html", {"data": data, "geo": geo})
 
 def city_detail(request):
     lat = request.GET.get("lat")
@@ -282,9 +299,6 @@ def city_detail(request):
     # Safely extract address fields from geo
     municipality = geo['addresses'][0]['address']['municipality']
     country = geo['addresses'][0]['address']['country']
-    print(municipality)
-    print(country)  
-
 
     city_description, created = City.objects.get_or_create(
         latitude=lat,
@@ -296,23 +310,50 @@ def city_detail(request):
         city_description.save()
 
     desc_cache_key = f"desc:{desc_sig}:{city_description.id}"
-    print(desc_cache_key)
     description_data = cache.get(desc_cache_key)
-
-    if city_description.description is None or city_description.updated_at is None or datetime.now(timezone.utc) - city_description.updated_at > timedelta(days=1):
-        description_data = generate_city_description(data, geo)
-        city_description.description = description_data.get('description')
-        city_description.what_to_wear = description_data.get('what_to_wear')
-        city_description.updated_at = datetime.now(timezone.utc)
-        city_description.save()
-
+    print(description_data)
+    print(desc_cache_key)
     if description_data is None:
-        try:
+        print('here 1')
+        if city_description.updated_at:
+            print('here 2')
+            if  datetime.now(timezone.utc) - city_description.updated_at < timedelta(days=1):
+                print('here 3')
+                description_data = {"description": city_description.description, "what_to_wear": city_description.what_to_wear}
+            else:
+                description_data = generate_city_description(data, geo)
+                city_description.description = description_data['description']
+                city_description.what_to_wear = description_data['what_to_wear']
+                city_description.save()
+        else:
+            print('here 4')
             description_data = generate_city_description(data, geo)
-        except Exception:
-            description_data = {}
-        cache.set(desc_cache_key, description_data, DESC_TTL)
-
+            city_description.description = description_data['description']
+            city_description.what_to_wear = description_data['what_to_wear']
+            city_description.updated_at = datetime.now(timezone.utc)
+            city_description.save()
+    else:
+        print('here 5')
+        if city_description.updated_at:
+            print('here 6')
+            if datetime.now(timezone.utc) - city_description.updated_at   < timedelta(days=1):
+                print('here 7')
+                description_data = {"description": city_description.description, "what_to_wear": city_description.what_to_wear}
+            else:
+                description_data = generate_city_description(data, geo)
+                city_description.description = description_data['description']
+                city_description.what_to_wear = description_data['what_to_wear']
+                city_description.updated_at = datetime.now(timezone.utc)
+                city_description.save()
+        else:
+            print('here 8')
+            description_data = generate_city_description(data, geo)
+            city_description.description = description_data['description']
+            city_description.what_to_wear = description_data['what_to_wear']
+            city_description.updated_at = datetime.now(timezone.utc)
+            city_description.save()
+    cache.set(desc_cache_key, description_data, DESC_TTL)
+    print(description_data)
     # ---------- USER CITIES (single query, cached per user) ----------
     username = request.user.username
     cities_cache_key = f"user_cities:{username}"
@@ -329,17 +370,18 @@ def city_detail(request):
         name_by_id = {c.id: c.name for c in qs}
         cities_list = [name_by_id.get(cid) for cid in city_ids if cid in name_by_id]
         cache.set(cities_cache_key, cities_list, CITIES_TTL)
-    print(description_data)
+
     context = {
         "geo": geo,
         "data": data,
         "cities_list": cities_list or [],
         "description_data": description_data or {},
     }
-    print (geo)
-    print(data)
-    print(description_data)
+
     return render(request, "cities/city_detail.html", context)
+
+
+
 @api_view(['POST'])
 def add_city_to_profile(request):
     payload = request.data

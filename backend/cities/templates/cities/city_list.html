@@ -36,7 +36,7 @@
 
           <div class="row bottom">
             <div class="coords muted">
-              {{ data.today }}/{{ data.today.temp.max }}
+              {{ c.daily.0.temp.min|add:"-273" }}°C / {{ c.daily.0.temp.max|add:"-273" }}°C
             </div>
           </div>
         </article>

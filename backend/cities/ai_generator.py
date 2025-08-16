@@ -47,14 +47,7 @@ def tream_data(day_weather: dict, geo_data: dict):
         }
     }
 
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print("AI GENERATOR DATA BELOW")
-    print(data)
+
     return data
 
 
@@ -76,9 +69,6 @@ def generate_city_description(day_weather: dict, geo_data: dict) -> Dict[str, st
     #     "description": "описание погоды для данного дня",
     #     "what_to_wear": "что одеться для данного дня, учитывая текущую погоду и то, как она будет меняться в течение дня"
     # """
-    print("AI GENERATOR DATA BELOW")
-    print(day_weather)
-    print(geo_data)
     prompt = """
 You are a weather expert.
 
@@ -96,7 +86,7 @@ Rules:
   "description": "2-3 sentences about what is the weather like right now and what is the weather going to change during the day",
   "what_to_wear": "clothing advice based on current and upcoming weather"
 }"""
-    print(prompt)
+
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
