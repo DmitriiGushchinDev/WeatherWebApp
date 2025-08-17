@@ -114,15 +114,31 @@
   
   /* ====== CITY CARDS ====== */
   .city-card {
-    padding: 16px 18px;
-    display: block;
-    transition: transform 0.2s ease;
-  }
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.18);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    }
   
   .city-card:hover {
     transform: scale(1.01);
   }
   
+  .city-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4); /* dark overlay for readability */
+    border-radius: 16px;
+    }
+
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -747,4 +763,14 @@
 .search-item:hover,
 .search-item.active {
   background: rgba(255,255,255,.10);
+}
+.trash-bin {
+  cursor: pointer;
+  transition: background 0.3s ease;
+  padding: 6px;
+  border-radius: 50%;
+}
+
+.trash-bin.confirm {
+  background: red;
 }

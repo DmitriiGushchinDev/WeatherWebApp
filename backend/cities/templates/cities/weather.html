@@ -22,11 +22,20 @@
 }
 </style>
 
-{% if request.user.is_authenticated and not data.name in cities_list%}
-  <a href="#" class="pill" style="position: absolute; right: 10px; top: 120px;" onclick="add_city_to_list()"> + </a>
+{% if request.user.is_authenticated and not geo.city in cities_list%}
+  <a href="#" class="pill" style="position: absolute; right: 10px; top: 120px;" onclick="addCityToProfile(event)"
+     data-city-name="{{ geo.city }}"
+     data-country="{{ geo.country }}"
+     data-latitude="{{ data.lat }}"
+     data-longitude="{{ data.lon }}"> + </a>
   <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> add the city to your list </span>
+{% elif request.user.is_authenticated and geo.city in cities_list%}
+  <a href="#" class="pill trash-bin city-card" style="position: absolute; right: 10px; top: 120px;"
+  data-city-name="{{ geo.city }}"
+  data-delete-url="{% url 'cities:delete_city' geo.city %}"> 🗑️ </a>
+  <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> remove the city from your list </span>
 {% else %}
-  <a href="{% url 'auth:login' %}" class="pill" style="position: absolute; right: 10px; top: 120px;"> + </a>
+  <a href="{% url 'auth:login' %}" class="pill" style="position: absolute; right: 10px; top: 120px;"> - </a>
   <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> login to add the city to your list </span>
 {% endif %}
 
@@ -235,5 +244,73 @@
     `;
   }).join('');
 })();
+</script>
+
+<script>
+  function addCityToProfile(event){
+    event.preventDefault();
+    const btn = event.currentTarget;
+    const city = btn.dataset.cityName;
+    const country = btn.dataset.country;
+    const lat = parseFloat(btn.dataset.latitude);
+    const lon = parseFloat(btn.dataset.longitude);
+    btn.style.pointerEvents = 'none';
+    btn.textContent = 'Added';
+
+    fetch('{% url "cities:add_city_to_profile" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ name: city, country, lat, lon })
+    })
+    .then(r => r.json())
+    .then(() => { btn.style.display = 'none'; })
+    .catch(err => { console.error(err); btn.style.pointerEvents='auto'; btn.textContent='+'; });
+  }
+</script>
+
+<script>
+document.querySelectorAll(".trash-bin").forEach(bin => {
+  let clickedOnce = false;
+  bin.addEventListener("click", function() {
+    if (!clickedOnce) {
+      // First click → mark as confirm
+      this.classList.add("confirm");
+      clickedOnce = true;
+
+      // Reset after 3s if not clicked again
+      setTimeout(() => {
+        this.classList.remove("confirm");
+        clickedOnce = false;
+      }, 3000);
+
+    } else {
+      // Second click → actually delete
+      const cityCard = this.closest(".city-card");
+      const url = cityCard.dataset.deleteUrl; // already a full URL from Django
+
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") }
+      }).then(res => {
+        if (res.ok) cityCard.remove();
+      });    }
+  });
+});
+
+// Helper to get CSRF token (Django)
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 </script>
 {% endblock %}

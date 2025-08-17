@@ -27,7 +27,7 @@ CITIES_TTL = 60 * 10          # 10min (user’s cities list)
 
 # ---- HTTP defaults ----
 REQ_TIMEOUT = 8  # seconds
-
+BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 load_dotenv()
 
 API_KEY = settings.OPENWEATHER_API_KEY
@@ -108,7 +108,13 @@ def _get_json(url, *, params=None, timeout=8):
 
 def weather_of_city(request):
     sess = request.session
-
+    profile = Profile.objects.get(user=request.user)
+    cities = profile.cities.all()
+    cities_list = []
+    for city in cities:
+        city_name = city.name
+        cities_list.append(city_name)
+    print(cities_list)
     # 1) Geolocate (cache separately)
     geo_cache = sess.get("geo_cache")
     now = time.time()
@@ -144,7 +150,7 @@ def weather_of_city(request):
         and now - wx_cache.get("fetched_at", 0) < WEATHER_TTL_SECONDS
     ):
         data = wx_cache["data"]
-        return render(request, "cities/weather.html", {"data": data, "geo": geo})
+        return render(request, "cities/weather.html", {"data": data, "geo": geo, "cities_list": cities_list})
 
     # 3) Fetch fresh weather
     try:
@@ -162,7 +168,7 @@ def weather_of_city(request):
         # If fetch fails but we have a previous cache, use it as a fallback
         if wx_cache and "data" in wx_cache:
             data = wx_cache["data"]
-            return render(request, "cities/city_detail.html", {"data": data, "geo": geo})
+            return render(request, "cities/city_detail.html", {"data": data, "geo": geo, "cities_list": cities_list})
         return HttpResponseServerError("Weather service unavailable.")
 
     # 4) Save cache consistently
@@ -173,7 +179,7 @@ def weather_of_city(request):
         "fetched_at": now,
     }
 
-    return render(request, "cities/weather.html", {"data": data, "geo": geo})
+    return render(request, "cities/weather.html", {"data": data, "geo": geo, "cities_list": cities_list})
 
 
 
@@ -396,3 +402,12 @@ def add_city_to_profile(request):
     profile.save()
     return JsonResponse({'message': 'City added to profile'})
 
+@login_required
+def delete_city(request,city_name):
+    if request.method == "POST":
+        # Assuming you have City model with user relation
+        city = request.user.cities.filter(name=city_name).first()
+        if city:
+            city.delete()
+            return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "error"}, status=400)
