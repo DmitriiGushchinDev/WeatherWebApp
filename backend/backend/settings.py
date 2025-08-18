@@ -181,5 +181,8 @@ EMAIL_HOST_USER = "weatherapp.dev@gmail.com"
 EMAIL_HOST_PASSWORD = "weatherapp.dev"
 DEFAULT_FROM_EMAIL = "weatherapp.dev@gmail.com"
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"     
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]   
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
