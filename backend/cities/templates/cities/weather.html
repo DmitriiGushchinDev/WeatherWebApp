@@ -4,23 +4,23 @@
 
 {% block content %}
 <style>
-/* ---- layout tweaks just for this page ---- */
-.wx-grid {
-  display: grid;
-  grid-template-columns: 2fr 1.2fr;
-  gap: 16px;
-  margin-top: 16px;
-}
-.wx-daily { min-height: 360px; }
-.wx-side { display: grid; gap: 16px; grid-auto-rows: minmax(0, auto); }
-.days .day-row { padding: 10px 0; }
-.hours-scroll .h-pill { min-width: 72px; padding: 10px 8px; }
-/* responsive */
-@media (max-width: 900px) {
-  .wx-grid { grid-template-columns: 1fr; }
-  .wx-daily, .wx-side { min-height: initial; }
-}
-</style>
+  /* ----    tweaks just for this page ---- */
+  .wx-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .wx-daily { min-height: 20px; }
+  .wx-side { display: grid; gap: 16px; grid-auto-rows: minmax(0, auto); }
+  .days .day-row { padding: 10px 0; }
+  .hours-scroll .h-pill { min-width: 72px; padding: 10px 8px; }
+  /* responsive */
+  @media (max-width: 900px) {
+    .wx-grid { grid-template-columns: 1fr; }
+    .wx-daily, .wx-side { min-height: initial; }
+  }
+  </style>
 
 {% if request.user.is_authenticated and not geo.city in cities_list%}
   <a href="#" class="pill" style="position: absolute; right: 10px; top: 120px;" onclick="addCityToProfile(event)"
@@ -34,9 +34,6 @@
   data-city-name="{{ geo.city }}"
   data-delete-url="{% url 'cities:delete_city' geo.city %}"> 🗑️ </a>
   <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> remove the city from your list </span>
-{% else %}
-  <a href="{% url 'auth:login' %}" class="pill" style="position: absolute; right: 10px; top: 120px;"> - </a>
-  <span class='hovered-pill' style="display: inline-block; position: absolute; right: 10px; top: 80px;"> login to add the city to your list </span>
 {% endif %}
 
 <section class="hero">
@@ -52,7 +49,7 @@
   <div class="hours-scroll" id="hourlyStrip"></div>
 </section>
 
-<section class="wx-grid">
+
   <div class="wx-daily module glass">
     <div class="module-title">7-Day Forecast</div>
     <div id="dailyCompact" class="days-compact"></div>
@@ -77,8 +74,8 @@
       <div class="kv"><span>Sunrise</span><b id="sunrise">—</b></div>
       <div class="kv"><span>Sunset</span><b id="sunset">—</b></div>
     </div>
-  </div>
-</section>
+
+
 
 <section class="module glass" style="margin-top:16px;">
   <div class="module-title">Network</div>
@@ -184,7 +181,6 @@
     const towardDeg = (fromDeg + 180) % 360;
     const towardTxt = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((towardDeg||0)/22.5)%16];
     const sp        = h.wind_speed ?? '—';
-
     const popClass = popPct === 0 ? 'zero' : (popPct < 70 ? 'mid' : 'high');
 
     return `
@@ -311,6 +307,18 @@ function getCookie(name) {
     }
   }
   return cookieValue;
+}
+
+function getDescriptionData(){
+  const wx  = JSON.parse(document.getElementById('wx-json').textContent || '{}');   // weather data
+  const geo = JSON.parse(document.getElementById('geo-json').textContent || '{}');  // location
+
+  // if your view adds description + what_to_wear into wx-json
+  const desc = wx.description || "—";
+  const wear = wx.what_to_wear || "—";
+
+  document.getElementById("wxDescription").textContent = desc;
+  document.getElementById("wxWear").textContent = wear;
 }
 </script>
 {% endblock %}
