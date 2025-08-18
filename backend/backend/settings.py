@@ -180,3 +180,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "weatherapp.dev@gmail.com"
 EMAIL_HOST_PASSWORD = "weatherapp.dev"
 DEFAULT_FROM_EMAIL = "weatherapp.dev@gmail.com"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"     
+STATICFILES_DIRS = [BASE_DIR / "static"]   
