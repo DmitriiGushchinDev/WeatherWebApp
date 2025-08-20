@@ -692,7 +692,7 @@
   background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
 }
 .nav-search input{
-  background:transparent; border:none; outline:none; color:#fff; min-width:220px;
+  background:transparent; border:none; outline:none; color:#fff; min-width:100px;
 }
 .nav-search button{
   background:transparent; border:none; cursor:pointer; color:#fff; font-size:16px; overflow: visible;
