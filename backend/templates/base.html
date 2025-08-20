@@ -66,34 +66,7 @@
   <footer class="footer glass">
     <small>&copy; {{ now|date:"Y" }} Weather Alerts</small>
   </footer>
-  <script>
-    (function () {
-      const TARGET = "";
-      const qs = new URLSearchParams(location.search);
-      if (qs.has("lat") && qs.has("lon")) return; // already have coords
-    
-      const go = (lat, lon, name="", country="") => {
-        const params = new URLSearchParams({ lat, lon, name, country });
-        location.href = `${TARGET}?${params}`;
-      };
-    
-      const fallback = () => { fetch("/geo/guess").then(r=>r.json()).then(g=>{
-        if (g.lat && g.lon) go(g.lat, g.lon, g.city || "", g.country || "");
-      }).catch(()=>go(40.7127,-74.006,"New York","US")); }; // safe default
-    
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          ({coords:{latitude,longitude}}) => go(latitude, longitude),
-          () => fallback(),
-          { enableHighAccuracy: true, timeout: 7000, maximumAge: 600000 }
-        );
-        // If user never responds, still fallback after 7s
-        setTimeout(fallback, 7500);
-      } else {
-        fallback();
-      }
-    })();
-    </script>
+  {% block js %}
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('citySearchInput');
@@ -186,34 +159,7 @@
   <!-- Optional global JS -->
   <script src="{% static 'main.js' %}"></script>
   <!-- base.html -->
-<script>
-  (function () {
-    const TARGET = "/cities/city-detail/";
-    const qs = new URLSearchParams(location.search);
-    if (qs.has("lat") && qs.has("lon")) return; // already have coords
-  
-    const go = (lat, lon, name="", country="") => {
-      const params = new URLSearchParams({ lat, lon, name, country });
-      location.href = `${TARGET}?${params}`;
-    };
-  
-    const fallback = () => { fetch("/geo/guess").then(r=>r.json()).then(g=>{
-      if (g.lat && g.lon) go(g.lat, g.lon, g.city || "", g.country || "");
-    }).catch(()=>go(40.7127,-74.006,"New York","US")); }; // safe default
-  
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        ({coords:{latitude,longitude}}) => go(latitude, longitude),
-        () => fallback(),
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 600000 }
-      );
-      // If user never responds, still fallback after 7s
-      setTimeout(fallback, 7500);
-    } else {
-      fallback();
-    }
-  })();
-  </script>
+
 
   
   <script>
@@ -244,6 +190,7 @@
       }
     });
     </script>
+  {% endblock %}
   {% block extra_js %}{% endblock %}
 
 </body>
