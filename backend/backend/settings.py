@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+REDIS_URL = os.getenv('REDIS_URL')
 DB_NAME = os.getenv('DATABASE_NAME')
 DB_USER = os.getenv('DATABASE_USER')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD')
@@ -32,7 +33,7 @@ REQUESTS_TIMEOUT  = float(os.getenv("REQUESTS_TIMEOUT", "6"))
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "LOCATION": REDIS_URL,
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         "TIMEOUT": 0,  # use per-key TTLs
     }
@@ -162,7 +163,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # Replace with your Redis server URL
+        "LOCATION": "redis://127.0.0.1:6379/1",  
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
