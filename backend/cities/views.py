@@ -37,6 +37,14 @@ WEATHER_TTL_SECONDS_FOR_LIST = 3*60
 GEO_TTL_SECONDS = 1*60
 GEOLOCATION_API_BY_LAT_LON = settings.GEOLOCATION_API_BY_LAT_LON
 # Create your views here.
+
+def generate_hash_id(lat, lon):
+    new_lat = int(float(lat))
+    new_lon = int(float(lon))
+    hash_id = hashlib.md5(f"{new_lat}_{new_lon}".encode()).hexdigest()
+    print(hash_id)
+    return hash_id
+
 @login_required(login_url='auth:login')
 def cities_list(request):
     # If not logged in, just return empty list
@@ -230,11 +238,13 @@ def city_detail_for_unauthenticated_user(request):
     data_response = requests.get(data_url)
     data = data_response.json()
     description_data = generate_city_description(data, geo)
+    hash_id = generate_hash_id(lat, lon)
     city_description, created = City.objects.get_or_create(
         latitude=lat,
         longitude=lon,
         name=geo['addresses'][0]['address']['localName'],
-        country=geo['addresses'][0]['address']['country']
+        country=geo['addresses'][0]['address']['country'],
+        hash_id=hash_id
     )
     city_description.description = description_data['description']
     city_description.what_to_wear = description_data['what_to_wear']
@@ -323,15 +333,17 @@ def city_detail(request):
     # Safely extract address fields from geo
     municipality = geo['addresses'][0]['address']['municipality']
     country = geo['addresses'][0]['address']['country']
-
-    city_description, created = City.objects.get_or_create(
-        latitude=lat,
-        longitude=lon,
-        name=municipality,
-        country=country
-    )
-    if created:
+    print(municipality, country,lat, lon)
+    hash_id = generate_hash_id(lat, lon)
+    print(municipality, country,lat, lon)
+    try:
+        city_description = City.objects.get(name=municipality, country=country, hash_id=hash_id)
+    except City.DoesNotExist:
+        city_description = City.objects.create(name=municipality, country=country, hash_id=hash_id, latitude=lat, longitude=lon)
         city_description.save()
+    else:
+        city_description.save()
+
 
     desc_cache_key = f"desc:{desc_sig}:{city_description.id}"
     description_data = cache.get(desc_cache_key)
