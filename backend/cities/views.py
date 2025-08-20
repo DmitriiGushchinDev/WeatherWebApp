@@ -218,6 +218,9 @@ def _fetch_json(url: str) -> dict:
 def city_detail_for_unauthenticated_user(request):
     lat = request.GET.get("lat")
     lon = request.GET.get("lon")
+    lat = round(float(lat), 2)
+    lon = round(float(lon), 2)
+    print(lat, lon)
     if not lat or not lon:
         return HttpResponseBadRequest("lat and lon are required")
     geo_url = f"https://api.tomtom.com/search/2/reverseGeocode/?key={GEOLOCATION_API_BY_LAT_LON}&position={lat},{lon}"
@@ -251,7 +254,28 @@ def city_detail_for_unauthenticated_user(request):
 def city_detail(request):
     lat = request.GET.get("lat")
     lon = request.GET.get("lon")
+    if lat is None or lon is None:
+        city = City.objects.get(name='New York')
+        data_url = f"https://api.openweathermap.org/data/3.0/onecall?lat={city.latitude}&lon={city.longitude}&appid={API_KEY}"
+        data_response = requests.get(data_url)
+        data = data_response.json()
+        geo_url = f"https://api.tomtom.com/search/2/reverseGeocode/?key={GEOLOCATION_API_BY_LAT_LON}&position={city.latitude},{city.longitude}"
+        geo_response = requests.get(geo_url)
+        geo = geo_response.json()
+        description_data = generate_city_description(data, geo)
+        context = {
+            "data": data,
+            "geo": geo,
+            "description_data": description_data,
+            "cities_list": [],
+        }
+        return render(request, 'cities/city_detail.html', context)
+    
+    lat = round(float(lat), 2)
+    lon = round(float(lon), 2)
     print(lat, lon)
+    print(type(lat), type(lon))
+
     if not lat or not lon:
         return HttpResponseBadRequest("lat and lon are required")
 
@@ -355,32 +379,44 @@ def city_detail(request):
     cache.set(desc_cache_key, description_data, DESC_TTL)
     print(description_data)
     # ---------- USER CITIES (single query, cached per user) ----------
-    print(request.user.username)
-    username = request.user.username
-    cities_cache_key = f"user_cities:{username}"
-    cities_list = cache.get(cities_cache_key)
+    if request.user.is_authenticated:
+        username = request.user.username
+        cities_cache_key = f"user_cities:{username}"
+        cities_list = cache.get(cities_cache_key)
 
-    if cities_list is None:
-        profile = get_object_or_404(Profile, user__username=username)
-        # serialize once to get ids, then bulk fetch names
-        profile_serializer = ProfileSerializer(profile)
-        city_ids = profile_serializer.data.get("cities", [])
-        # bulk query to avoid N+1
-        qs = City.objects.filter(id__in=city_ids).only("id", "name")
-        # keep original order if needed
-        name_by_id = {c.id: c.name for c in qs}
-        cities_list = [name_by_id.get(cid) for cid in city_ids if cid in name_by_id]
-        cache.set(cities_cache_key, cities_list, CITIES_TTL)
+        if cities_list is None:
+            profile = get_object_or_404(Profile, user__username=username)
+            # serialize once to get ids, then bulk fetch names
+            profile_serializer = ProfileSerializer(profile)
+            city_ids = profile_serializer.data.get("cities", [])
+            # bulk query to avoid N+1
+            qs = City.objects.filter(id__in=city_ids).only("id", "name")
+            # keep original order if needed
+            name_by_id = {c.id: c.name for c in qs}
+            cities_list = [name_by_id.get(cid) for cid in city_ids if cid in name_by_id]
+            cache.set(cities_cache_key, cities_list, CITIES_TTL)
 
-    context = {
-        "geo": geo,
-        "data": data,
-        "cities_list": cities_list or [],
-        "description_data": description_data or {},
-    }
+        context = {
+            "geo": geo,
+            "data": data,
+            "cities_list": cities_list or [],
+            "description_data": description_data or {},
+        }
 
-    return render(request, "cities/city_detail.html", context)
-
+        return render(request, "cities/city_detail.html", context)
+    else: 
+        username = 'unauthenticated_user'
+        cities_cache_key = f"user_cities:{username}"
+        cities_list = cache.get(cities_cache_key)
+        if cities_list is None:
+            cities_list = []
+        context = {
+            "geo": geo,
+            "data": data,
+            "cities_list": cities_list or [],
+            "description_data": description_data or {},
+        }
+        return render(request, "cities/city_detail.html", context)
 
 
 @api_view(['POST'])

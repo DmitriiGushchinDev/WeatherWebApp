@@ -24,10 +24,17 @@
 <body class="{% block body_class %}{% endblock %}">
 
   <header class="topbar glass">
+    {% if request.user.is_authenticated %}
     <div class="logo">
-      <a href="{% url 'cities:city_detail' %}" class="logo-link">Weather</a>
+      <a href="{% url 'cities:city_detail' %}" id="use-location" class="logo-link">Weather</a>
       <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
     </div>
+    {% else %}
+    <div class="logo">
+      <a href="{% url 'cities:city_detail_for_unauthenticated_user' %}" id="use-location" class="logo-link">Weather</a>
+      <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
+    </div>
+    {% endif %}
     <div class="nav-actions">
       <a href="{% url 'cities_list' %}" class="pill">Favorites ♡</a>
     </div>
@@ -59,6 +66,34 @@
   <footer class="footer glass">
     <small>&copy; {{ now|date:"Y" }} Weather Alerts</small>
   </footer>
+  <script>
+    (function () {
+      const TARGET = "";
+      const qs = new URLSearchParams(location.search);
+      if (qs.has("lat") && qs.has("lon")) return; // already have coords
+    
+      const go = (lat, lon, name="", country="") => {
+        const params = new URLSearchParams({ lat, lon, name, country });
+        location.href = `${TARGET}?${params}`;
+      };
+    
+      const fallback = () => { fetch("/geo/guess").then(r=>r.json()).then(g=>{
+        if (g.lat && g.lon) go(g.lat, g.lon, g.city || "", g.country || "");
+      }).catch(()=>go(40.7127,-74.006,"New York","US")); }; // safe default
+    
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          ({coords:{latitude,longitude}}) => go(latitude, longitude),
+          () => fallback(),
+          { enableHighAccuracy: true, timeout: 7000, maximumAge: 600000 }
+        );
+        // If user never responds, still fallback after 7s
+        setTimeout(fallback, 7500);
+      } else {
+        fallback();
+      }
+    })();
+    </script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('citySearchInput');
@@ -179,6 +214,36 @@
     }
   })();
   </script>
+
+  
+  <script>
+    document.getElementById('use-location').addEventListener('click', function (e) {
+      e.preventDefault();                       // stop immediate navigation
+      const target = this.getAttribute('href'); // base URL without params
+      console.log(target)
+      const go = (lat, lon, name="", country="") => {
+        const q = new URLSearchParams({ lat, lon, name, country });
+        location.href = `${target}?${q}`;
+      };
+      const fallback = () => {
+        fetch('/geo/guess').then(r => r.json()).then(g => {
+          if (g.lat && g.lon) return go(g.lat, g.lon, g.city||"", g.country||"");
+          go(38.58, -121.49, 'Sacramento', 'US'); // last resort
+        }).catch(() => go(38.58, -121.49, 'Sacramento', 'US'));
+      };
+    
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          ({coords:{latitude,longitude}}) => go(latitude, longitude),
+          () => fallback(),
+          { enableHighAccuracy:true, timeout:7000, maximumAge:600000 }
+        );
+        setTimeout(fallback, 7500); // user never responds
+      } else {
+        fallback();
+      }
+    });
+    </script>
   {% block extra_js %}{% endblock %}
 
 </body>

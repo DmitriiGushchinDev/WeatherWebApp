@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from cities import views
 urlpatterns = [
-    path('',views.weather_of_city, name='weather_of_detected_city'),
+    path('',include('cities.urls')),
     path('cities_list',views.cities_list, name='cities_list'),
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
