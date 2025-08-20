@@ -23,7 +23,7 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
-  <header class="topbar glass">
+  <header class="topbar  glass" >
     {% if request.user.is_authenticated %}
     <div class="logo">
       <a href="{% url 'cities:city_detail' %}" id="use-location" class="logo-link">Weather</a>
@@ -36,26 +36,22 @@
     </div>
     {% endif %}
     <div class="nav-actions">
-      <a href="{% url 'cities_list' %}" class="pill">Favorites ♡</a>
+      <a href="{% url 'cities_list' %}" class="pill">♡</a>
     </div>
 
     <form id="city-search" class="nav-search" role="search" autocomplete="off">
-      <input id="citySearchInput" type="text" placeholder="Search city…" aria-label="Search city" />
+      <input id="citySearchInput" type="text" placeholder="Search city…" aria-label="Search city" class ="search-input"/>
       <button type="submit">🔍</button>
       <div id="citySearchResults" class="search-dropdown" hidden></div>
     </form>
 
-    <nav class="nav-actions">
+    <nav class="nav-action" style = "max-width: 100%%;" >
       {% if request.user.is_authenticated %}
         <span class="username glowing-text">{{ request.user.username }}</span>
         <a href="{% url 'auth:logout' %}" class="pill">Sign out</a>
       {% else %}
-        <!-- Link to Clerk sign-in -->
         <a href="{% url 'auth:login' %}" class="pill">Sign in</a>
       {% endif %}
-        <!-- other navbar content -->
-      
-
       </nav>
   </header>
 
