@@ -112,7 +112,7 @@
     
       function goToCity(r){
         const base = window.USER_IS_AUTHENTICATED 
-          ? "/cities/detail/" 
+          ? "/cities/city-detail/" 
           : "/cities/city_detail_for_unauthenticated_user/";
       
         window.location.href = `${base}?lat=${encodeURIComponent(r.lat)}&lon=${encodeURIComponent(r.lon)}&name=${encodeURIComponent(r.name)}&country=${encodeURIComponent(r.country||'')}`;
