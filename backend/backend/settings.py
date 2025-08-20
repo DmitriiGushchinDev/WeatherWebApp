@@ -186,3 +186,19 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+INSTALLED_APPS += ["whitenoise.runserver_nostatic"]  # keep django.contrib.staticfiles enabled
+
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # right after SecurityMiddleware
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"          # where collectstatic puts files
+
+# Optional but recommended: compressed + hashed filenames
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
+}
