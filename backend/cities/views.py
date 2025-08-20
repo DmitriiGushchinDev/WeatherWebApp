@@ -355,6 +355,7 @@ def city_detail(request):
     cache.set(desc_cache_key, description_data, DESC_TTL)
     print(description_data)
     # ---------- USER CITIES (single query, cached per user) ----------
+    print(request.user.username)
     username = request.user.username
     cities_cache_key = f"user_cities:{username}"
     cities_list = cache.get(cities_cache_key)
