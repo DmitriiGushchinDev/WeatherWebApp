@@ -20,7 +20,8 @@ dependencies = [
     "django-clerk (>=0.1.15,<0.2.0)",
     "openai (>=1.99.9,<2.0.0)",
     "gunicorn (>=23.0.0,<24.0.0)",
-    "whitenoise (>=6.9.0,<7.0.0)"
+    "whitenoise (>=6.9.0,<7.0.0)",
+    "redis (>=6.4.0,<7.0.0)"
 ]
 
 

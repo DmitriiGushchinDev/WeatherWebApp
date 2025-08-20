@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import redis
 
 load_dotenv()
 REDIS_URL = os.getenv('REDIS_URL')
@@ -173,6 +174,10 @@ CACHES = {
         "TIMEOUT": 60 * 5,  # 30 days
     }
 }
+
+
+
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
