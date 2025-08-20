@@ -25,7 +25,7 @@
 
   <header class="topbar glass">
     <div class="logo">
-      <a href="{% url 'cities:weather_of_detected_city' %}" class="logo-link">Weather</a>
+      <a href="{% url 'cities:city_detail' %}" class="logo-link">Weather</a>
       <img src="{% static 'icons/sun.png' %}" alt="Weather" style="width: 25px; height: 25px;">
     </div>
     <div class="nav-actions">
@@ -150,6 +150,36 @@
     </script>
   <!-- Optional global JS -->
   <script src="{% static 'main.js' %}"></script>
+  <!-- base.html -->
+<script>
+  (function () {
+    const TARGET = "/cities/city-detail/";
+    const qs = new URLSearchParams(location.search);
+    if (qs.has("lat") && qs.has("lon")) return; // already have coords
+  
+    const go = (lat, lon, name="", country="") => {
+      const params = new URLSearchParams({ lat, lon, name, country });
+      location.href = `${TARGET}?${params}`;
+    };
+  
+    const fallback = () => { fetch("/geo/guess").then(r=>r.json()).then(g=>{
+      if (g.lat && g.lon) go(g.lat, g.lon, g.city || "", g.country || "");
+    }).catch(()=>go(40.7127,-74.006,"New York","US")); }; // safe default
+  
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        ({coords:{latitude,longitude}}) => go(latitude, longitude),
+        () => fallback(),
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 600000 }
+      );
+      // If user never responds, still fallback after 7s
+      setTimeout(fallback, 7500);
+    } else {
+      fallback();
+    }
+  })();
+  </script>
   {% block extra_js %}{% endblock %}
+
 </body>
 </html>

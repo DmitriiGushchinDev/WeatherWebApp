@@ -142,7 +142,7 @@ def weather_of_city(request):
         and now - wx_cache.get("fetched_at", 0) < WEATHER_TTL_SECONDS
     ):
         data = wx_cache["data"]
-        print(geo)
+
         return render(request, "cities/weather.html", {"data": data, "geo": geo})
 
     # 3) Fetch fresh weather
@@ -161,7 +161,6 @@ def weather_of_city(request):
         # If fetch fails but we have a previous cache, use it as a fallback
         if wx_cache and "data" in wx_cache:
             data = wx_cache["data"]
-            print(geo)
             return render(request, "cities/weather.html", {"data": data, "geo": geo})
         return HttpResponseServerError("Weather service unavailable.")
 
@@ -252,6 +251,7 @@ def city_detail_for_unauthenticated_user(request):
 def city_detail(request):
     lat = request.GET.get("lat")
     lon = request.GET.get("lon")
+    print(lat, lon)
     if not lat or not lon:
         return HttpResponseBadRequest("lat and lon are required")
 
