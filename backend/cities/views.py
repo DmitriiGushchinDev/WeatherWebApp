@@ -239,13 +239,18 @@ def city_detail_for_unauthenticated_user(request):
     data = data_response.json()
     description_data = generate_city_description(data, geo)
     hash_id = generate_hash_id(lat, lon)
-    city_description, created = City.objects.get_or_create(
+    try: 
+        city_description = City.objects.get(name=geo['addresses'][0]['address']['localName'], country=geo['addresses'][0]['address']['country'], hash_id=hash_id)
+    except City.DoesNotExist:
+        city_description = City.objects.create(
         latitude=lat,
         longitude=lon,
         name=geo['addresses'][0]['address']['localName'],
         country=geo['addresses'][0]['address']['country'],
         hash_id=hash_id
     )
+    else:
+        city_description.save()
     city_description.description = description_data['description']
     city_description.what_to_wear = description_data['what_to_wear']
     city_description.save()
@@ -259,7 +264,7 @@ def city_detail_for_unauthenticated_user(request):
 
 
 
-    return render(request, "cities/weather.html", {"data": data, "geo": geo})
+
 
 def city_detail(request):
     lat = request.GET.get("lat")
@@ -438,7 +443,14 @@ def add_city_to_profile(request):
     country = payload.get('country')
     lat = payload.get('lat')
     lon = payload.get('lon')
-    city_obj = City.objects.create(name=city, country=country, latitude=lat, longitude=lon)
+    new_lat = round(float(lat), 2)
+    new_lon = round(float(lon), 2)
+    try:
+        city_obj = City.objects.get(name=city, country=country, latitude=new_lat, longitude=new_lon)
+    except City.DoesNotExist:
+        city_obj = City.objects.create(name=city, country=country, latitude=new_lat, longitude=new_lon)
+    else:
+        city_obj.save()
     username = request.user.username
     profile = Profile.objects.get(user__username=username)
     profile.cities.add(city_obj)
