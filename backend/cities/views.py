@@ -54,6 +54,7 @@ def cities_list(request):
     # Current user cities
     cities_qs = request.user.profile.cities.all()
     cities = list(cities_qs)
+    print(cities)
 
     # Build a simple, stable signature of the cities set
     # (order-independent: sort by id)
@@ -338,15 +339,14 @@ def city_detail(request):
     # Safely extract address fields from geo
     municipality = geo['addresses'][0]['address']['municipality']
     country = geo['addresses'][0]['address']['country']
+    region = geo['addresses'][0]['address']['countrySecondarySubdivision']
     print(municipality, country,lat, lon)
     hash_id = generate_hash_id(lat, lon)
     print(municipality, country,lat, lon)
     try:
-        city_description = City.objects.get(name=municipality, country=country, hash_id=hash_id)
+        city_description = City.objects.get(name=municipality, country=country, region=region)
     except City.DoesNotExist:
-        city_description = City.objects.create(name=municipality, country=country, hash_id=hash_id, latitude=lat, longitude=lon)
-        city_description.save()
-    else:
+        city_description = City.objects.create(name=municipality, country=country, region=region,latitude=lat, longitude=lon)
         city_description.save()
 
 
@@ -441,14 +441,15 @@ def add_city_to_profile(request):
     payload = request.data
     city = payload.get('name')
     country = payload.get('country')
+    region = payload.get('region')
     lat = payload.get('lat')
     lon = payload.get('lon')
     new_lat = round(float(lat), 2)
     new_lon = round(float(lon), 2)
     try:
-        city_obj = City.objects.get(name=city, country=country, latitude=new_lat, longitude=new_lon)
+        city_obj = City.objects.get(name=city, country=country, region=region)
     except City.DoesNotExist:
-        city_obj = City.objects.create(name=city, country=country, latitude=new_lat, longitude=new_lon)
+        city_obj = City.objects.create(name=city, country=country, region=region, latitude=new_lat, longitude=new_lon)
     else:
         city_obj.save()
     username = request.user.username

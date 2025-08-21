@@ -22,12 +22,13 @@
     .wx-daily, .wx-side { min-height: initial; }
   }
   </style>
-
+{{cities_list}}
 {% if request.user.is_authenticated and not geo.addresses.0.address.localName in cities_list %}
   <a class="pill" style="position: absolute; right: 10px; top: 120px;"  onclick="addCityToProfile(event)" 
      data-city-name="{{ geo.addresses.0.address.localName }}"
      data-country="{{ geo.addresses.0.address.country }}"
      data-latitude="{{ data.lat }}"
+     data-region="{{ geo.addresses.0.address.countrySecondarySubdivision }}"
      data-longitude="{{ data.lon }}">+</a>
 {% endif %}
 
@@ -95,6 +96,7 @@
     const btn = event.currentTarget;
     const city = btn.dataset.cityName;
     const country = btn.dataset.country;
+    const region = btn.dataset.region;
     const lat = parseFloat(btn.dataset.latitude);
     const lon = parseFloat(btn.dataset.longitude);
     btn.style.pointerEvents = 'none';
@@ -103,7 +105,7 @@
     fetch('{% url "cities:add_city_to_profile" %}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-      body: JSON.stringify({ name: city, country, lat, lon })
+      body: JSON.stringify({ name: city, country, lat, lon, region })
     })
     .then(r => r.json())
     .then(() => { btn.style.display = 'none'; })
