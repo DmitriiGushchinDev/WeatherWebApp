@@ -22,7 +22,7 @@
     .wx-daily, .wx-side { min-height: initial; }
   }
   </style>
-{{cities_list}}
+
 {% if request.user.is_authenticated and not geo.addresses.0.address.localName in cities_list %}
   <a class="pill" style="position: absolute; right: 10px; top: 120px;"  onclick="addCityToProfile(event)" 
      data-city-name="{{ geo.addresses.0.address.localName }}"
