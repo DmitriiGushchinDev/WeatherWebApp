@@ -240,15 +240,19 @@ def city_detail_for_unauthenticated_user(request):
     data = data_response.json()
     description_data = generate_city_description(data, geo)
     hash_id = generate_hash_id(lat, lon)
+    city =  geo['addresses'][0]['address']['localName']
+    country = geo['addresses'][0]['address']['country']
+    region = geo['addresses'][0]['address']['countrySecondarySubdivision']
+    print(city, country, region,lat, lon)
     try: 
-        city_description = City.objects.get(name=geo['addresses'][0]['address']['localName'], country=geo['addresses'][0]['address']['country'], hash_id=hash_id)
+        city_description = City.objects.get(name=city, country=country, region=region)
     except City.DoesNotExist:
         city_description = City.objects.create(
         latitude=lat,
         longitude=lon,
-        name=geo['addresses'][0]['address']['localName'],
-        country=geo['addresses'][0]['address']['country'],
-        hash_id=hash_id
+        name=city,
+        country=country,
+        region=region
     )
     else:
         city_description.save()
