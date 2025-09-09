@@ -9,9 +9,8 @@ It is designed as a learning project and a demonstration of building production-
 - Real-time weather data fetched from **OpenWeatherMap API**
 - RESTful endpoints built with **FastAPI** (async, high-performance)
 - **PostgreSQL** integration for storing and querying weather history
-- **Docker Compose** setup for easy local deployment
 - Auto-generated API docs with **Swagger (OpenAPI)**
-- Unit testing with **pytest**
+
 
 ---
 
