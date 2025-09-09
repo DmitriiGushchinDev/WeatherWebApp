@@ -18,8 +18,6 @@ It is designed as a learning project and a demonstration of building production-
 ## 🛠 Tech Stack
 - **Backend Framework**: FastAPI
 - **Database**: PostgreSQL
-- **Containerization**: Docker & Docker Compose
-- **Testing**: pytest
 - **API Client**: OpenWeatherMap
 
 ---
@@ -30,5 +28,4 @@ It is designed as a learning project and a demonstration of building production-
 git clone https://github.com/DmitriiGushchinDev/weather-app.git
 cd weather-app
 
-# Run with Docker
-docker-compose up --build
+
